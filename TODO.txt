@@ -1,0 +1,6 @@
+Physical Layer - Patrick *IN-PROGRESS*
+Data Link Layer - Patrick *UNTESTED*
+Application Layer Msg - Patrick *UNTESTED*
+User Input (UART0)
+Send Commands to Trainset
+
