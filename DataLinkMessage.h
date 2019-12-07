@@ -5,6 +5,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    28-Nov-2019 (created)
+ * @date    7-Dec-2019 (edited)
  */
 #pragma once
 
@@ -13,15 +14,15 @@
 #define PHYSDATALINKMB (4)
 
 /* Enumeration of data link layer control types */
-typedef enum DataLinkType
+enum DataLinkType
 {
   DATA  = 0,
   ACK   = 1,
   NACK  = 2
-}
+};
 
 /* Structure of data link control field */
-struct DataLinkControl
+typedef struct DataLinkControl
 {
   unsigned receivedNum      : 3;
   unsigned sequenceNum      : 3;
@@ -29,9 +30,9 @@ struct DataLinkControl
 } DLControl;
 
 /* Structure of data link messages */
-struct DataLinkMessage
+typedef struct DataLinkMessage
 {
   struct DataLinkControl control;
   unsigned char length;
-  unsigned char * message;
+  char * message;
 } DLMessage;

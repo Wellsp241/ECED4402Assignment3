@@ -205,6 +205,8 @@ int getOldestMessageMB(PCB* owner)
  * */
 int kernelBind(int desiredMB)
 {
+    int result = SUCCESS;
+
     if(!(STARTING_INDEX<=desiredMB&&desiredMB<=MAILBOX_AMOUNT))
     {return BIND_FAIL;}
 
@@ -261,6 +263,8 @@ int kernelBind(int desiredMB)
  * */
 int kernelUnbind(int releaseMB)
 {
+    int result = UNBIND_FAIL;
+
     if(mailboxList[releaseMB].owner == getRunningPCB()||!(STARTING_INDEX<=releaseMB&&releaseMB<=MAILBOX_AMOUNT))
     {
         mailboxList[releaseMB].owner = NULL;

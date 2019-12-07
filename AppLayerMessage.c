@@ -5,6 +5,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    28-Nov-2019 (created)
+ * @date    7-Dec-2019 (edited)
  */
 #include "KernelCall.h"
 #include "AppLayerMessage.h"
@@ -19,16 +20,17 @@
 inline void stopLocomotives(int appMailbox)
 {
     unsigned int msgSize = sizeof(AppMessage);
-    volatile char replyMsg[msgSize];
-    AppFromMB reply = replyMsg;
+    char replyMsg[msgSize];
+    union AppFromMB reply;
+    reply.recvAddr = replyMsg;
 
     /* Build locomotive stop request */
-    reply->code = MAG_DIR_SET;
-    reply->arg1 = ALL;
-    reply->arg2 = STOP;
+    reply.msgAddr->code = MAG_DIR_SET;
+    reply.msgAddr->arg1 = ALL;
+    reply.msgAddr->arg2 = STOP;
 
     /* Send request to data link layer */
-    sendMessage(APPDATALINKMB, appMailbox, reply, msgSize);
+    sendMessage(APPDATALINKMB, appMailbox, reply.recvAddr, msgSize);
 
     return;
 }
@@ -43,8 +45,9 @@ void AppMessageHandler(void)
     int senderMB;
     int msgSize = sizeof(AppMessage);
     /* Reserve space for messages */
-    volatile char message[msgSize];
-    AppFromMB received = message;
+    char message[msgSize];
+    union AppFromMB received;
+    received.recvAddr = message;
 
     /* Bind to dedicated mailbox */
     appMailbox = bind(APPLAYERMB);
@@ -58,10 +61,10 @@ void AppMessageHandler(void)
         while(1)
         {
             /* Receive message from mailbox */
-            recvMessage(appMailbox, &senderMB, received, &msgSize);
+            recvMessage(appMailbox, &senderMB, received.recvAddr, msgSize);
 
             /* Act based on message's code */
-            switch(received->code)
+            switch(received.msgAddr->code)
             {
             /* Hall sensor has been triggered */
             case HALL_TRIGGERED:
@@ -72,7 +75,7 @@ void AppMessageHandler(void)
             /* Reply to a hall sensor reset request */
             case HALL_RESET_ACK:
                 /* Check whether reset was successful */
-                if(received->arg2 != 0)
+                if(received.msgAddr->arg2 != 0)
                 {
                     /* Stop all locomotives */
                     stopLocomotives(appMailbox);
@@ -81,16 +84,16 @@ void AppMessageHandler(void)
             /* Reply to a magnitude/direction set request */
             case MAG_DIR_ACK:
                 /* Check whether speed set was successful */
-                if(received->arg2 != 0)
+                if(received.msgAddr->arg2 != 0)
                 {
                     /* Stop all locomotives */
                     stopLocomotives(appMailbox);
                 }
                 break;
-            /* Reply to a switch-throw requst */
+            /* Reply to a switch-throw request */
             case SWITCH_THROW_ACK:
                 /* Check whether switch throw was successful */
-                if(received->arg2 != 0)
+                if(received.msgAddr->arg2 != 0)
                 {
                     /* Stop all locomotives */
                     stopLocomotives(appMailbox);

@@ -5,6 +5,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    28-Nov-2019 (created)
+ * @date    7-Dec-2019 (edited)
  */
 #pragma once
 
@@ -18,17 +19,17 @@
 #define STOP          (0)
 
 /* Enumeration of application layer message codes */
-typedef enum AppLayerCode : unsigned char
+enum AppLayerCode
 {
-  HALL_TRIGGERED      (0xA0)
-  HALL_TRIGGERED_ACK  (0xA2)
-  HALL_RESET_REQUEST  (0xA8)
-  HALL_RESET_ACK      (0xAA)
-  MAG_DIR_SET         (0xC0)
-  MAG_DIR_ACK         (0xC2)
-  SWITCH_THROW        (0xE0)
-  SWITCH_THROW_ACK    (0xE2)
-}
+  HALL_TRIGGERED      = 0xA0,
+  HALL_TRIGGERED_ACK  = 0xA2,
+  HALL_RESET_REQUEST  = 0xA8,
+  HALL_RESET_ACK      = 0xAA,
+  MAG_DIR_SET         = 0xC0,
+  MAG_DIR_ACK         = 0xC2,
+  SWITCH_THROW        = 0xE0,
+  SWITCH_THROW_ACK    = 0xE2
+};
 
 /* Structure of magnitude/direction message speed */
 struct AppLayerSpeed
@@ -39,14 +40,14 @@ struct AppLayerSpeed
 };
 
 /* Union of unsigned character and AppLayerSpeed */
-typedef union Mag_Dir
+union Mag_Dir
 {
-  unsigned char;
-  struct AppLayerSpeed;
+  unsigned char rawByte;
+  struct AppLayerSpeed Speed;
 };
 
 /* Structure of application layer messages */
-struct AppLayerMessage
+typedef struct AppLayerMessage
 {
   enum AppLayerCode code;
   unsigned char arg1;
@@ -54,8 +55,8 @@ struct AppLayerMessage
 } AppMessage;
 
 /* Union of unsigned character pointer and AppMessage pointer */
-typedef union AppFromMB
+union AppFromMB
 {
-    char *;
-    AppMessage *;
+    char * recvAddr;
+    AppMessage * msgAddr;
 };

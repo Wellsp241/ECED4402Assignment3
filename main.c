@@ -130,15 +130,16 @@ int main(void)
     {
         /* Initialize required hardware + interrupts */
         initpendSV();
-        UART0_Init();           // Initialize UART0
+        UART_Init();           // Initialize UART
         InterruptEnable(INT_VEC_UART0);       // Enable UART0 interrupts
-        UART0_IntEnable(UART_INT_RX | UART_INT_TX); // Enable Receive and Transmit interrupts
+        InterruptEnable(INT_VEC_UART1);
+        UART_IntEnable(UART_INT_RX | UART_INT_TX); // Enable Receive and Transmit interrupts
         SysTickPeriod(HUNDREDTH_WAIT);
         SysTickIntEnable();
         char *clearString = CLEAR_SCREEN;
         while (*clearString)
         {
-            forceOutput(*(clearString++));
+            forceOutputUART0(*(clearString++));
         }
         /* Trap to begin running processes */
         SVC();

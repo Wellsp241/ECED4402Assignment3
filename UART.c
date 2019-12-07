@@ -7,7 +7,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    23-Sep-2019 (created)
- * @date    26-Oct-2019 (modified)
+ * @date    7-Dec-2019 (modified)
  */
 
 #define GLOBAL_UART
@@ -21,9 +21,12 @@
 
 #define TRUE    1
 #define FALSE   0
-/*UART interrupt buffer */
-static char dataRegister;
-static int gotData = FALSE;
+/*UART0 interrupt buffer */
+static char dataRegister0;
+static int gotData0 = FALSE;
+/*UART1 interrupt buffer */
+static char dataRegister1;
+static int gotData1 = FALSE;
 static PCB * printingProcess;
 
 void uartProcess(void)
@@ -36,58 +39,68 @@ void uartProcess(void)
     {
         recvMessage(ANY, &toMB, cont, size);
         printingProcess = getOwnerPCB(toMB);
-        printString(cont);
+        printStringUART0(cont);
     }
 }
 
 int getDataRegister(char * data)
 {
-    if (gotData)
+    if (gotData0)
     {
-    *data = dataRegister;
+    *data = dataRegister0;
     }
-    return gotData;
+    return gotData0;
 }
 
 void dataRecieved(void)
 {
-    gotData = FALSE;
+    gotData0 = FALSE;
 }
 /*
- * @brief initialize UART0
+ * @brief initialize UART0 and UART1
  *        with BAUD-RATE:       115200
  *             Data Bits:       8
  *             Parity Bits:     0
  *             Stop Bits:       1
  */
-void UART0_Init(void)
+void UART_Init(void)
 {
     volatile int wait;
 
-    /* Initialize UART0 */
-    SYSCTL_RCGCGPIO_R |= SYSCTL_RCGCUART_GPIOA;   // Enable Clock Gating for UART0
-    SYSCTL_RCGCUART_R |= SYSCTL_RCGCGPIO_UART0;   // Enable Clock Gating for PORTA
+    /* Initialize UART0/UART1 */
+    SYSCTL_RCGCGPIO_R |= SYSCTL_RCGCUART_GPIO;   // Enable Clock Gating for UART0/UART1
+    SYSCTL_RCGCUART_R |= SYSCTL_RCGCGPIO_UART;   // Enable Clock Gating for PORTA/PORTB
     wait = 0; // give time for the clocks to activate
 
     UART0_CTL_R &= ~UART_CTL_UARTEN;        // Disable the UART
+    UART1_CTL_R &= ~UART_CTL_UARTEN;
     wait = 0;   // wait required before accessing the UART config regs
 
     // Setup the BAUD rate
     UART0_IBRD_R = 8;   // IBRD = int(16,000,000 / (16 * 115,200)) = 8.680555555555556
     UART0_FBRD_R = 44;  // FBRD = int(.680555555555556 * 64 + 0.5) = 44.05555555555556
 
+    UART1_IBRD_R = 8;
+    UART1_FBRD_R = 44;
+
     UART0_LCRH_R = (UART_LCRH_WLEN_8);  // WLEN: 8, no parity, one stop bit, without FIFOs)
+    UART1_LCRH_R = (UART_LCRH_WLEN_8);
 
     GPIO_PORTA_AFSEL_R = 0x3;        // Enable Receive and Transmit on PA1-0
     GPIO_PORTA_PCTL_R = (0x01) | ((0x01) << 4);         // Enable UART RX/TX pins on PA1-0
-    GPIO_PORTA_DEN_R = EN_DIG_PA0 | EN_DIG_PA1;        // Enable Digital I/O on PA1-0
+    GPIO_PORTA_DEN_R = EN_DIG_P0 | EN_DIG_P1;        // Enable Digital I/O on PA1-0
+
+    GPIO_PORTB_AFSEL_R = 0x3;
+    GPIO_PORTB_PCTL_R = (0x01) | ((0x01) << 4);
+    GPIO_PORTB_DEN_R = EN_DIG_P0 | EN_DIG_P1;
 
     UART0_CTL_R = UART_CTL_UARTEN;        // Enable the UART
+    UART1_CTL_R = UART_CTL_UARTEN;
     wait = 0; // wait; give UART time to enable itself.
 }
 
 /*
- * @brief   Enable UART0 to interrupt
+ * @brief   Enable UART0/UART1 to interrupt
  * @param   [in] unsigned long InterruptIndex:
  *          UART0 address in interrupt table
  */
@@ -101,22 +114,23 @@ else
 }
 
 /*
- * @brief   Enable UART0 receive and transmit interrupts in UART0
+ * @brief   Enable UART0/UART1 receive and transmit interrupts
  * @param   [in] unsigned long Flags:
  *          bit mask to specify conditions for interrupt
  */
-void UART0_IntEnable(unsigned long flags)
+void UART_IntEnable(unsigned long flags)
 {
     /* Set specified bits for interrupt */
     UART0_IM_R |= flags;
+    UART1_IM_R |= flags;
 }
 
 /*
- * @brief   Force character into the data register
+ * @brief   Force character into the UART0 data register
  * @param   [in] char data: character to be put into
  *          data register
  */
-void forceOutput(char data)
+void forceOutputUART0(char data)
 {
         while(UART0_FR_R & UART_FR_TXFF);//wait until not busy
         UART0_DR_R = data;
@@ -129,13 +143,13 @@ void forceOutput(char data)
  *          if the the output queue isn't empty force
  *          next available data out
  */
-void printString(char* string)
+void printStringUART0(char* string)
 {
     int increaseCursor = (*string == ESC)? FALSE : TRUE;
 
     while(*string)
     {
-        forceOutput(*(string++));
+        forceOutputUART0(*(string++));
         printingProcess->xAxisCursorPosition+=increaseCursor;
     }
 }
@@ -148,26 +162,26 @@ void printWarning(int returnValue)
         switch(returnValue)
         {
         case DEFAULT_FAIL:
-            printString("DEFAULT FAILURE");
+            printStringUART0("DEFAULT FAILURE");
         break;
         case SEND_FAIL:
-            printString("SEND FAILURE");
+            printStringUART0("SEND FAILURE");
         break;
         case RECV_FAIL:
-            printString("RECEIVE FAILURE");
+            printStringUART0("RECEIVE FAILURE");
         break;
         case BIND_FAIL:
-            printString("BIND FAILURE");
+            printStringUART0("BIND FAILURE");
         break;
         case UNBIND_FAIL:
-            printString("UNBIND FAILURE");
+            printStringUART0("UNBIND FAILURE");
         break;
         }
     }
 }
 
 /*
- * @brief   Handles receive and transmit interrupts
+ * @brief   Handles receive and transmit interrupts for UART0
  * @detail  check if receive interrupt has been set
  *          if it has set gotData in the input queue
  *          if the the output queue isn't empty force
@@ -183,13 +197,41 @@ void UART0_IntHandler(void)
     {
         /* RECV done - clear interrupt and make char available to application */
         UART0_ICR_R |= UART_INT_RX;
-        gotData = TRUE;
-        dataRegister = UART0_DR_R;
+        gotData0 = TRUE;
+        dataRegister0 = UART0_DR_R;
     }
 
     if(UART0_MIS_R & UART_INT_TX)
     {
         UART0_ICR_R |= UART_INT_TX;
+    }
+
+}
+
+/*
+ * @brief   Handles receive and transmit interrupts for UART1
+ * @detail  check if receive interrupt has been set
+ *          if it has set gotData in the input queue
+ *          if the the output queue isn't empty force
+ *          next available data out
+ */
+void UART1_IntHandler(void)
+{
+/*
+ * Simplified UART ISR - handles receive and xmit interrupts
+ * Application signalled when data received
+ */
+    if(UART1_MIS_R & UART_INT_RX)
+    {
+        /* RECV done - clear interrupt and make char available to application */
+        UART1_ICR_R |= UART_INT_RX;
+        gotData1 = TRUE;
+        dataRegister1 = UART1_DR_R;
+    }
+
+    if(UART1_MIS_R & UART_INT_TX)
+    {
+        UART1_ICR_R |= UART_INT_TX;
     }
 
 }

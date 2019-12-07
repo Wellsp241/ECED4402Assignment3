@@ -58,6 +58,7 @@ extern void SVCall(void);
 extern void pendSV(void);
 extern void SYSTICKHandler(void);
 extern void UART0_IntHandler(void);
+extern void UART1_IntHandler(void);
 
 //*****************************************************************************
 //
@@ -92,7 +93,7 @@ void (* const g_pfnVectors[])(void) =
     IntDefaultHandler,                      // GPIO Port D
     IntDefaultHandler,                      // GPIO Port E
     UART0_IntHandler,                      // UART0 Rx and Tx
-    IntDefaultHandler,                      // UART1 Rx and Tx
+    UART1_IntHandler,                      // UART1 Rx and Tx
     IntDefaultHandler,                      // SSI0 Rx and Tx
     IntDefaultHandler,                      // I2C0 Master and Slave
     IntDefaultHandler,                      // PWM Fault
