@@ -5,9 +5,10 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    28-Nov-2019 (created)
- * @date    7-Dec-2019 (edited)
+ * @date    8-Dec-2019 (edited)
  */
 #pragma once
+#include "AppLayerMessage.h"
 
 /* Define data link layer mailboxes */
 #define APPDATALINKMB  (3)
@@ -34,5 +35,12 @@ typedef struct DataLinkMessage
 {
   struct DataLinkControl control;
   unsigned char length;
-  char * message;
+  AppMessage appMessage;
 } DLMessage;
+
+/* Union of DLMessage pointer and character pointer */
+union DLFromMB
+{
+    char * recvAddr;
+    DLMessage * msgAddr;
+};
