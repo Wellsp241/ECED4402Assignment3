@@ -37,7 +37,7 @@ void uartProcess(void)
     int size = MESSAGE_SYS_LIMIT;
     while(1)
     {
-        recvMessage(ANY, &toMB, cont, size);
+        recvMessage(ANY, &toMB, cont, &size);
         printingProcess = getOwnerPCB(toMB);
         printStringUART0(cont);
     }

@@ -61,7 +61,7 @@ void AppMessageHandler(void)
         while(1)
         {
             /* Receive message from mailbox */
-            recvMessage(appMailbox, &senderMB, received.recvAddr, msgSize);
+            recvMessage(appMailbox, &senderMB, received.recvAddr, &msgSize);
 
             /* Act based on message's code */
             switch(received.msgAddr->code)

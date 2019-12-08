@@ -10,8 +10,10 @@
 #include "stdlib.h"
 #include "KernelCall.h"
 #include "DataLinkMessage.h"
+#include "PhysLayerMessage.h"
 
-/* Definition of maximum sequence number */
+
+/* Definition of sliding window size */
 #define MAX_SEQUENCE    (8)
 
 /* Macro used to increment sequence/expected numbers */
@@ -41,6 +43,11 @@ inline void forwardMessages(unsigned char start, int MB)
     int fwdSize = sizeof(DLMessage);
     union DLFromMB toForward;
 
+    //TODO: What if two processes call this function at once?
+    //      No harm can be done from this but it could be really
+    //      inefficient to not handle it. Though it is unlikely to
+    //      occur in the first place.
+
     /* Loop through all messages to re-send */
     for(i = start; i != DLState.sequenceNum; i = INCREMENT_SEQUENCE(i))
     {
@@ -48,9 +55,7 @@ inline void forwardMessages(unsigned char start, int MB)
         toForward.msgAddr = &sentQueue[i];
 
         /* Send this message to the physical layer */
-        //TODO: Need to create a handler for physical layer messages to be received
-        //      from data link layer through UART1.
-        //sendMessage(##, MB, toForward.recvAddr, fwdSize);
+        sendMessage(DLPHYSMB, MB, toForward.recvAddr, fwdSize);
     }
 
     return;
@@ -93,7 +98,7 @@ void DataLinkfromAppHandler(void)
         while(1)
         {
             /* Receive message from mailbox. These messages follow the AppLayerMessage format */
-            recvMessage(ApptoDLMB, &senderMB, received.recvAddr, recvSize);
+            recvMessage(ApptoDLMB, &senderMB, received.recvAddr, &recvSize);
 
             /* Fill control field of message to forward with current data link state.
              * Note that the type field of our saved DLState is not ever changed from DATA.
@@ -106,9 +111,7 @@ void DataLinkfromAppHandler(void)
             //TODO: Find a way to not send arg2 of AppLayerMessages if it is not needed
 
             /* Forward message to physical layer */
-            //TODO: Need to create a handler for physical layer messages to be received
-            //      from data link layer through UART1.
-            //sendMessage(##, ApptoDLMB, toForward.recvAddr, fwdSize);
+            sendMessage(DLPHYSMB, ApptoDLMB, toForward.recvAddr, fwdSize);
 
             /* Copy this message to the sent queue in case of failure */
             sentQueue[DLState.sequenceNum] = *(toForward.msgAddr);
@@ -162,7 +165,7 @@ void DataLinkfromPhysHandler(void)
         while(1)
         {
             /* Receive message from mailbox. These messages follow the DataLinkMessage format */
-            recvMessage(PhystoDLMB, &senderMB, received.recvAddr, recvSize);
+            recvMessage(PhystoDLMB, &senderMB, received.recvAddr, &recvSize);
 
             /* Act on received message's type */
             switch(received.msgAddr->control.type)
@@ -179,9 +182,7 @@ void DataLinkfromPhysHandler(void)
                     received.msgAddr->control.type = NACK;
 
                     /* Send this reply to the physical layer for forwarding to the train set */
-                    //TODO: Need to create a handler for physical layer messages to be received
-                    //      from data link layer through UART1.
-    //                sendMessage(##, PhystoDLMB, received.recvAddr, ctlSize);
+                    sendMessage(DLPHYSMB, PhystoDLMB, received.recvAddr, ctlSize);
                 }
                 else
                 {
@@ -197,9 +198,7 @@ void DataLinkfromPhysHandler(void)
                     received.msgAddr->control = DLState;
                     received.msgAddr->control.type = ACK;
 
-                    //TODO: Need to create a handler for physical layer messages to be received
-                    //      from data link layer through UART1.
-                    //sendMessage(##, PhystoDLMB, received.recvAddr, ctlSize);
+                    sendMessage(DLPHYSMB, PhystoDLMB, received.recvAddr, ctlSize);
 
                     /* Send non-data link portion of received message to application layer */
                     //TODO: Find a way to exclude arg2 if it is not included in app layer

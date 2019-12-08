@@ -55,7 +55,7 @@ void Priority3Process10(void)
     {
         strcpy(cont, " *hi 20*\0");
         sendMessage(toMB, mailBox, cont, size);
-        recvMessage(mailBox, &toMB, cont, size);
+        recvMessage(mailBox, &toMB, cont, &size);
         getProcessCursor(myID,cursorPosition);
         sendMessage(UART_MB, mailBox, cursorPosition, CURSOR_STRING);
         sendMessage(UART_MB, mailBox, cont, size);
@@ -89,7 +89,7 @@ void Priority3Process20(void)
 
     while (i < 5)
     {
-        recvMessage(mailBox, &toMB, cont, size);
+        recvMessage(mailBox, &toMB, cont, &size);
         getProcessCursor(myID,cursorPosition);
         sendMessage(UART_MB, mailBox, cursorPosition, CURSOR_STRING);
         sendMessage(UART_MB, mailBox, cont, size);
