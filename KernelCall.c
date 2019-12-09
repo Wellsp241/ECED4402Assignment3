@@ -231,6 +231,17 @@ int recvMessage(unsigned int bindedMB, int * returnMB, void * contents, int * ma
     return result;
 }
 
+void block(void)
+{
+    volatile KernelArgs blockArg; /* Volatile to actually reserve space on stack */
+    blockArg . code = BLOCK;
+
+    /* Assign address of getidarg to R7 */
+    assignR7((unsigned long) &blockArg);
+
+    SVC();
+}
+
 
 
 

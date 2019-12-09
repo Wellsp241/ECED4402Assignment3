@@ -8,7 +8,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    20-Oct-2019 (created)
- * @date    18-Nov-2019 (edited)
+ * @date    28-Nov-2019 (edited)
  */
 #define GLOBAL_SVC
 #include "SVC.h"
@@ -17,6 +17,9 @@
 #include "Messages.h"
 #include "Utilities.h"
 #include "SYSTICK.h"
+#include "UART.h"
+
+
 
 #define HIGH_PRIORITY 4
 #define LOW_PRIORITY 0
@@ -35,6 +38,7 @@ static int currentPriority = 0;
 extern void terminate(void);
 
 static PCB * waitingToRun[PRIORITY_LEVELS];
+static volatile int pendType = CONTEXT;
 /*
  * @brief   returns PCB of running process
  * @return  PCB *: address of running processes
@@ -64,7 +68,7 @@ int registerProcess(void (*code)(void), unsigned int pid, int priority)
    int result = 0;
 
    /* First must check to ensure the requested priority is valid */
-   if(priority <= HIGH_PRIORITY)
+   if((priority >= LOW_PRIORITY) && (priority <= HIGH_PRIORITY))
    {
 
        /* Requested priority is valid so continue with process registration */
@@ -80,7 +84,7 @@ int registerProcess(void (*code)(void), unsigned int pid, int priority)
        newProcess->contents=NULL;
        newProcess->size=NULL;
        newProcess->from=NULL;
-       newProcess->xAxisCursorPosition=NULL;
+       newProcess->xAxisCursorPosition=1;
        newProcess->receiveAnyHead=newProcess->receiveAnyTail=NULL;
        addPCB(newProcess, priority);
    }
@@ -110,6 +114,7 @@ int addPCB(PCB *newPCB, int newPriority)
         /* Must add process to tail of priority queue */
         newPCB->next = waitingToRun[newPriority];
         waitingToRun[newPriority] -> prev -> next = newPCB;
+        newPCB->prev = waitingToRun[newPriority] -> prev;
         waitingToRun[newPriority] -> prev = newPCB;
     }
     else
@@ -169,7 +174,6 @@ void decrementPriority(void)
     return;
 }
 
-
 /*
  * @brief   Configures pendSV interrupt by setting it to the lowest
  *          possible priority allowing other kernel calls to trigger
@@ -183,19 +187,59 @@ void initpendSV(void)
     return;
 }
 
+void setPendType(int newPendState)
+{
+    pendType = newPendState;
+}
 
 /*
  * @brief   pendSV ISR that carries out context switches
  */
 void pendSV(void)
 {
-    disable();
-    save_registers();
-    RUNNING -> sp = get_PSP();
-    RUNNING = RUNNING -> next;
-    set_PSP(RUNNING -> sp);
-    restore_registers();
-    enable();
+    PCB* callerPCB;
+
+    switch(pendType)
+    {
+    case INPUT:
+    if (getInputState())
+    {
+        save_registers();
+        callerPCB = RUNNING;
+        addPCB(getOwnerPCB(UART_IP_MB),3);
+        if(RUNNING != callerPCB)
+        {
+            callerPCB -> sp = get_PSP();
+            set_PSP(RUNNING -> sp);
+        }
+        restore_registers();
+    }
+    break;
+    case TIMER:
+    if(getTimerProcessState()&&getTimerState())
+    {
+        save_registers();
+        callerPCB = RUNNING;
+        addPCB(getOwnerPCB(TIMER_MB),4);
+        if(RUNNING != callerPCB)
+        {
+            callerPCB -> sp = get_PSP();
+            set_PSP(RUNNING -> sp);
+        }
+        restore_registers();
+    }
+    break;
+   case CONTEXT:
+
+        disable();
+        save_registers();
+        RUNNING -> sp = get_PSP();
+        RUNNING = RUNNING -> next;
+        set_PSP(RUNNING -> sp);
+        restore_registers();
+        enable();
+    break;
+    }
 }
 
 /*
@@ -239,10 +283,6 @@ __asm("     msr psp,r0");
 __asm("     POP     {PC}");
 
 }
-
-
-
-
 
 /*
  * @brief   Supervisor call handler
@@ -373,11 +413,13 @@ else /* Subsequent SVCs */
     case UNBIND:
         kcaptr->rtnvalue= kernelUnbind( kcaptr->arg1);
     break;
+    case BLOCK:
+           callerPCB = removePCB();
+           callerPCB -> sp = get_PSP();
+           set_PSP(RUNNING -> sp);
+    break;
     default:
         kcaptr -> rtnvalue = -1;
     }
 }
 }
-
-
-

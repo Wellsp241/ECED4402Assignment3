@@ -10,7 +10,7 @@
  */
 #pragma once
 
-enum kernelcallcodes {GETID, NICE, SENDMSG, RECEIVEMSG, TERMINATE, BIND, UNBIND};
+enum kernelcallcodes {GETID, NICE, SENDMSG, RECEIVEMSG, TERMINATE, BIND, UNBIND, BLOCK};
 /*
  * @brief   Kernel Argument Structure
  * @details Holds all variables passed to kernel
@@ -60,5 +60,6 @@ extern int nice(unsigned int);
 extern void terminate(void);
 extern int sendMessage(int, int, void *, int);
 extern int recvMessage(int, int*, void *, int *);
+extern void block(void);
 
 #endif

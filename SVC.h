@@ -4,10 +4,13 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    20-Oct-2019 (created)
- * @date    1-Nov-2019 (edited)
+ * @date    28-Nov-2019 (edited)
  */
 #pragma once
 #include "Process.h"
+
+enum pendType {CONTEXT,INPUT,TIMER};
+
 /* Macro used to set the priority of the pendSV interrupt */
 #define SETPENDSVPRIORITY ((*(volatile unsigned long *)0xE000ED20) |= 0x00E00000UL)
 
@@ -19,6 +22,8 @@ extern int addPCB(PCB *,int);
 extern PCB * removePCB(void);
 extern void initpendSV(void);
 extern PCB * getRunningPCB(void);
+extern void setPendType(int);
+
 
 #else
 

@@ -1,146 +1,162 @@
 /*
  * @file    main.c
  * @brief   Entry point to the light-weight messaging kernel
+ *
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    20-Oct-2019 (created)
- * @date    13-Nov-2019 (edited)
+ * @date    28-Nov-2019 (edited)
  */
+#include "KernelCall.h"
 #include <string.h>
 #include "UART.h"
-#include "Utilities.h"
-#include "KernelCall.h"
 #include "SVC.h"
-#include "Process.h"
 #include "SYSTICK.h"
 #include "Messages.h"
+
+
+
 
 /*
  * @brief   definition of idleProcess; the first process registered
  *          by the kernel. It must always idle and will only be run
  *          if there are no other processes in place.
- * */
+ */
 void idleProcess(void)
 {
     /* Loop indefinitely */
 
-    while (1)
-        ;
-
-}
-
-/*
- * @brief   Sample test process used to exercise inter-process communication
- */
-void Priority3Process10(void)
-{
     int mailBox = bind(ANY);
     int myID = getid();
-    char cursorPosition[CURSOR_STRING];
-    char idString[POSITION_DIGITS];
-    getProcessCursor(myID,cursorPosition);
-    formatLineNumber(myID, idString);
-    sendMessage(UART_MB, mailBox, cursorPosition, CURSOR_STRING);
-    sendMessage(UART_MB, mailBox, RED_TEXT, strlen(RED_TEXT) + 1);
-    sendMessage(UART_MB, mailBox, idString, POSITION_DIGITS + 1);
-    sendMessage(UART_MB, mailBox, CLEAR_MODE, strlen(CLEAR_MODE) + 1);
-    sendMessage(UART_MB, mailBox, "  ", 3);
-    int i = 0;
-    int toMB =3;
-    int size = 9;
-    char cont[9];
-    nice(2);
-    nice(3);
-    while (i < 5)
+    PCB* runningPCB = getRunningPCB();
+    int k=0;
+    int wait;
+    int cursorPos = 0;
+    while(1)
     {
-        strcpy(cont, " *hi 20*\0");
-        sendMessage(toMB, mailBox, cont, size);
-        recvMessage(mailBox, &toMB, cont, &size);
-        getProcessCursor(myID,cursorPosition);
-        sendMessage(UART_MB, mailBox, cursorPosition, CURSOR_STRING);
-        sendMessage(UART_MB, mailBox, cont, size);
+    while(cursorPos<IDLE_SYMBOLS)
+    {
+    sendMessage(UART_OP_MB, mailBox, "*", CHAR_SEND);
+    while(k<500000)
+    {
+        wait =0;
+        k++;
+    }
+    k=0;
+    cursorPos++;
+    }
+    cursorPos=0;
+    runningPCB->xAxisCursorPosition=cursorPos;
+    sendMessage(UART_OP_MB, mailBox, CLEAR_LINE, strlen(CLEAR_LINE) + 1);
+    }
+}
+
+void defaultProcess(void)
+{
+    volatile int wait = 0;
+    int mailBox = bind(ANY);
+    int myID = getid();
+    char idString[POSITION_DIGITS];
+    printLineMarker(myID,mailBox);
+
+    int i = 0;
+    while (i < EXAMPLE_MESSAGES_AMOUNT)
+    {
+        sendMessage(UART_OP_MB, mailBox, idString, POSITION_DIGITS + 1);
         i++;
     }
 
     unbind(mailBox);
 }
 
+/*
+ * @brief default process, except with a nice to
+ *        show self premption
+ * */
+void defaultProcessNice(void)
+{
+    volatile int wait = 0;
+
+    int mailBox = bind(ANY);
+    int myID = getid();
+    char idString[POSITION_DIGITS];
+    printLineMarker(myID,mailBox);
+
+    int i = 0;
+    while (i < EXAMPLE_MESSAGES_AMOUNT)
+    {
+
+        if(i==1){nice(1);}
+        sendMessage(UART_OP_MB, mailBox, idString, POSITION_DIGITS + 1);
+        i++;
+    }
+
+    unbind(mailBox);
+}
 
 /*
- * @brief   Sample test process used to exercise inter-process communication
- */
-void Priority3Process20(void)
+ * @brief example process to send and recv
+ *        with process 30
+ * */
+void Priority2Process10(void)
 {
+
     int mailBox = bind(3);
     int myID = getid();
-    char cursorPosition[CURSOR_STRING];
-    char idString[POSITION_DIGITS];
-    getProcessCursor(myID, cursorPosition);
-    formatLineNumber(myID, idString);
-    sendMessage(UART_MB, mailBox, cursorPosition, CURSOR_STRING);
-    sendMessage(UART_MB, mailBox, RED_TEXT, strlen(RED_TEXT) + 1);
-    sendMessage(UART_MB, mailBox, idString, POSITION_DIGITS + 1);
-    sendMessage(UART_MB, mailBox, CLEAR_MODE, strlen(CLEAR_MODE) + 1);
-    sendMessage(UART_MB, mailBox, "  ", 3);
-    int i=0;
-    int toMB;
-    int size = 9;
-    char cont[9];
+    printLineMarker(myID,mailBox);
 
-    while (i < 5)
-    {
-        recvMessage(mailBox, &toMB, cont, &size);
-        getProcessCursor(myID,cursorPosition);
-        sendMessage(UART_MB, mailBox, cursorPosition, CURSOR_STRING);
-        sendMessage(UART_MB, mailBox, cont, size);
-        strcpy(cont, " *hi 10*\0");
-        sendMessage(toMB, mailBox, cont, size);
-        i++;
-    }
+    int toMB;
+    int timerMB = TIMER_MB;
+    char cont[EXAMPLE_MESSAGE_LENGTH];
+
+        strcpy(cont, " Input to Process 10 ");
+        sendMessage(UART_IP_MB, mailBox, cont, strlen(cont) + 1);
+        recvMessage(mailBox, &toMB, cont, strlen(cont) + 1);
+        sendMessage(UART_OP_MB, mailBox, cont, strlen(cont) + 1);
+        sendMessage(TIMER_MB, mailBox,"60", 2);
+        recvMessage(mailBox, &timerMB , cont, strlen(cont) + 1);
+        sendMessage(UART_OP_MB, mailBox, cont, strlen(cont) + 1);
 
     unbind(mailBox);
 
 }
 
 /*
- * @brief   Registers processes.
- *          Configures hardware.
+ * @brief   registers processes.
  *          Sets highest priority process as Running
- *          Traps kernel with service call
+ *          traps kernel with service call
  *
  * */
 int main(void)
 {
-    int registerResult = 0;
-
     initMessagePool();
     initMailBoxList();
     initReceiveLogs();
 
+    int registerResult = 0;
+
     /* Register idle process first */
     registerResult |= registerProcess(idleProcess, 0, 0);
-    registerResult |= registerProcess(uartProcess, 1, 4);
+    registerResult |= registerProcess(uartOutputServer, 1, 4);
+    registerResult |= registerProcess(uartInputServer, 2, 3);
+    registerResult |= registerProcess(timeServer, 3, 4);
+
 
     /* Register other test processes */
-    registerResult |= registerProcess(Priority3Process10, 10, 3);
-    registerResult |= registerProcess(Priority3Process20, 20, 3);
+    registerResult |= registerProcess(Priority2Process10, 10, 2);
 
 
     if (!registerResult)
     {
         /* Initialize required hardware + interrupts */
         initpendSV();
-        UART_Init();           // Initialize UART
+        UART0_Init();           // Initialize UART0
         InterruptEnable(INT_VEC_UART0);       // Enable UART0 interrupts
-        InterruptEnable(INT_VEC_UART1);
-        UART_IntEnable(UART_INT_RX | UART_INT_TX); // Enable Receive and Transmit interrupts
-        SysTickPeriod(HUNDREDTH_WAIT);
+        UART0_IntEnable(UART_INT_RX | UART_INT_TX); // Enable Receive and Transmit interrupts
+        SysTickPeriod(HUNDREDTH_WAIT);//HUNDREDTH_WAIT
         SysTickIntEnable();
-        char *clearString = CLEAR_SCREEN;
-        while (*clearString)
-        {
-            forceOutputUART0(*(clearString++));
-        }
+        systemPrintString(CLEAR_SCREEN);
+
         /* Trap to begin running processes */
         SVC();
     }

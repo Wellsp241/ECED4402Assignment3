@@ -306,6 +306,7 @@ int kernelSend(int destinationMB, int fromMB, void * contents, int size)
        /* If the owner's PCB is blocked*/
 
      *(mailboxList[destinationMB].owner->from) = fromMB;
+     memset(mailboxList[destinationMB].owner->contents, NUL, mailboxList[destinationMB].owner->size);
      int copySize = (mailboxList[destinationMB].owner->size< size)?
                      mailboxList[destinationMB].owner->size :
                      size;
@@ -317,14 +318,14 @@ int kernelSend(int destinationMB, int fromMB, void * contents, int size)
    }
    else
    {
-       //if not blocked, fill a message structure from the
+       //if not blocked, fill a message structure mailbox the
        //message pool and put it in the mailbox
        ReceiveLog * newRecv = retrieveReceiveLog();
        Message * newMessage = retrieveFromPool();
 
        if(newMessage)
        {
-           newRecv->from = destinationMB;
+           newRecv->mailbox = destinationMB;
            newMessage->from = fromMB;
            newMessage->size = size;
            memcpy(newMessage->contents, contents, size);
@@ -358,7 +359,7 @@ int kernelSend(int destinationMB, int fromMB, void * contents, int size)
                mailboxList[destinationMB].tail=NULL;
                mailboxList[destinationMB].head->next = mailboxList[destinationMB].tail;
            }
-           addReceiveLogToPCB(runningPCB, newRecv);
+           addReceiveLogToPCB(mailboxList[destinationMB].owner, newRecv);
        }
        else{ return SEND_FAIL;}
 

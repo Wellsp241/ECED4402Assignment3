@@ -143,13 +143,18 @@ void forceOutputUART0(char data)
  *          if the the output queue isn't empty force
  *          next available data out
  */
-void printStringUART0(char* string)
+void printString(char* string, PCB * printingProcess)
 {
-    int increaseCursor = (*string == ESC)? FALSE : TRUE;
+    //check if its and escape sequence
+    char cursorPosition[CURSOR_STRING];
+    getProcessCursor(printingProcess, cursorPosition);
+    systemPrintString(cursorPosition);
 
+    int increaseCursor = (*string == ESC)? FALSE : TRUE;
     while(*string)
     {
-        forceOutputUART0(*(string++));
+        forceOutput(*(string++));
+        //update process cursor if not an escape sequence
         printingProcess->xAxisCursorPosition+=increaseCursor;
     }
 }
@@ -197,8 +202,13 @@ void UART0_IntHandler(void)
     {
         /* RECV done - clear interrupt and make char available to application */
         UART0_ICR_R |= UART_INT_RX;
-        gotData0 = TRUE;
-        dataRegister0 = UART0_DR_R;
+        uartReceiveBuffer.data = UART0_DR_R;
+        enqueue(uartReceiveBuffer);
+        if(getInputState())
+        {
+            setPendType(INPUT);
+            CALLPENDSV;
+        }
     }
 
     if(UART0_MIS_R & UART_INT_TX)
@@ -207,6 +217,7 @@ void UART0_IntHandler(void)
     }
 
 }
+
 
 /*
  * @brief   Handles receive and transmit interrupts for UART1
