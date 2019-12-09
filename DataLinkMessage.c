@@ -106,9 +106,7 @@ void DataLinkfromAppHandler(void)
             toForward.msgAddr->control = DLState;
 
             /* Assemble message to forward */
-            toForward.msgAddr->length = recvSize;
-
-            //TODO: Find a way to not send arg2 of AppLayerMessages if it is not needed
+            toForward.msgAddr->length = fwdSize;
 
             /* Forward message to physical layer */
             sendMessage(DLPHYSMB, ApptoDLMB, toForward.recvAddr, fwdSize);
@@ -201,8 +199,6 @@ void DataLinkfromPhysHandler(void)
                     sendMessage(DLPHYSMB, PhystoDLMB, received.recvAddr, ctlSize);
 
                     /* Send non-data link portion of received message to application layer */
-                    //TODO: Find a way to exclude arg2 if it is not included in app layer
-                    //      portion of received message.
                     sendMessage(APPLAYERMB, PhystoDLMB, toForward.recvAddr, fwdSize);
                 }
                 break;

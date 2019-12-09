@@ -5,7 +5,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    8-Dec-2019 (created)
- * @date
+ * @date    9-Dec-2019 (edited)
  */
 #include "string.h"
 #include "KernelCall.h"
@@ -42,11 +42,9 @@ void PhysLayerFromDLHandler(void)
 {
     int DLtoPhysMB;
     int senderMB;
-    int maxrecvSize = sizeof(DLMessage) * 2;
-    int maxfwdSize = maxrecvSize + NUMPHYSICALBYTES;
+    int maxrecvSize = sizeof(DLMessage);
     int recvSize;
     int i;
-    unsigned char specialchar = 0;
     /* Reserve space for a physical layer format message.
      * received points to first byte of container after
      * start byte (STX)
@@ -54,7 +52,7 @@ void PhysLayerFromDLHandler(void)
      * Field:       |Start|Message|Checksum|End|
      * Pointers:           received
      */
-    char toForward[maxfwdSize];
+    char toForward[(maxrecvSize * 2) + NUMPHYSICALBYTES];
     char * received = &toForward[1];
     char * checksum;
 
@@ -76,24 +74,24 @@ void PhysLayerFromDLHandler(void)
             recvSize = maxrecvSize;
             recvMessage(DLtoPhysMB, &senderMB, received, &recvSize);
 
-            /* Remove extra DLEs from received message */
+            //TODO: Need to add extra DLEs to message here
+            /* Add extra DLEs to message where necessary */
             for(i = 0; i < recvSize; i++)
             {
-                /* Check whether previous character was a DLE */
-                if(specialchar == 0)
+                /* Check whether current character is a special character */
+                if((received[i] == STX) ||
+                   (received[i] == ETX) ||
+                   (received[i] == DLE))
                 {
-                    /* Previous character was not a DLE so remove DLE if spotted */
-                    if(received[i] == DLE)
-                    {
-                        memmove(&received[i], &received[i + 1], recvSize - i);
-                        specialchar = 1;
-                        recvSize--;
-                    }
-                }
-                else
-                {
-                    /* Do not remove this character since it was preceded by DLE */
-                    specialchar = 0;
+                    /* First move contents of message to make room for extra character */
+                    memmove(&received[i + 1], &received[i], recvSize - i);
+
+                    /* Insert extra DLE character */
+                    received[i] = DLE;
+
+                    /* Adjust iterator and message size */
+                    i++;
+                    recvSize++;
                 }
             }
 
@@ -127,6 +125,20 @@ void PhysLayerFromUART1Handler(void)
 {
     int UART1toPhysMB;
     int senderMB;
+    int maxrecvSize = (sizeof(DLMessage) * 2) + NUMPHYSICALBYTES;
+    int recvSize;
+    int fwdSize;
+    int i;
+    /* Reserve space for a physical layer format message.
+     * toForward points to first byte of container after
+     * start byte (STX)
+     *
+     * Field:       |Start|Message|Checksum|End|
+     * Pointers:           toForward
+     */
+    char received[maxrecvSize];
+    char * toForward = &received[1];
+    char * checksum;
 
     /* Bind to dedicated mailbox */
     UART1toPhysMB = bind(UART1PHYSMB);
@@ -139,7 +151,32 @@ void PhysLayerFromUART1Handler(void)
          */
         while(1)
         {
+            /* Receive message from mailbox. These messages follow the PhysLayerMessage format */
+            recvSize = maxrecvSize;
+            recvMessage(UART1toPhysMB, &senderMB, received, &recvSize);
+            fwdSize = recvSize - NUMPHYSICALBYTES;
 
+            /* Remove extra DLEs from message to forward */
+            for(i = 0; i < fwdSize; i++)
+            {
+                /* Check if current character is a DLE */
+                if(toForward[i] == DLE)
+                {
+                    /* Current character is a DLE so remove it */
+                    memmove(&toForward[i], &toForward[i + 1], fwdSize - i);
+                    fwdSize--;
+                }
+            }
+
+            /* Adjust checksum pointer */
+            checksum = toForward + fwdSize;
+
+            /* Calculate expected checksum of message to forward */
+            if(getChecksum(toForward, fwdSize) == *checksum)
+            {
+                /* Forward message to data link layer only if checksum is valid */
+                sendMessage(PHYSDATALINKMB, UART1toPhysMB, toForward, fwdSize);
+            }
         }
     }
 

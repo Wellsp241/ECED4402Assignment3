@@ -10,6 +10,7 @@
 #include "KernelCall.h"
 #include "AppLayerMessage.h"
 #include "DataLinkMessage.h"
+#include "TrainRouting.h"
 
 
 /*
@@ -43,6 +44,7 @@ void AppMessageHandler(void)
 {
     int appMailbox;
     int senderMB;
+    struct RoutingTableEntry path;
     int msgSize = sizeof(AppMessage);
     /* Reserve space for messages */
     char message[msgSize];
@@ -69,8 +71,10 @@ void AppMessageHandler(void)
             /* Hall sensor has been triggered */
             case HALL_TRIGGERED:
                 //TODO: Need to check state of each train to determine which train triggered this hall sensor
-                //TODO: Then we need to check what this train needs to do to reach its destination. This might
-                //      be best handled by a dedicated process.
+             //   path = getPath(received.msgAddr->arg1, States[0].destination);
+
+                /* Determine whether any messages need to be sent to adjust the train's course */
+
                 break;
             /* Reply to a hall sensor reset request */
             case HALL_RESET_ACK:
