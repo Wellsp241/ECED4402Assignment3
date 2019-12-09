@@ -5,7 +5,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    28-Nov-2019 (created)
- * @date    7-Dec-2019 (edited)
+ * @date    9-Dec-2019 (edited)
  */
 #include "KernelCall.h"
 #include "AppLayerMessage.h"
@@ -14,11 +14,12 @@
 
 
 /*
- * @brief   Function used to send a request to stop all locomotives
+ * @brief   Function used to send a request to stop any/all locomotives
+ * @param   [in] unsigned char train: Index of train to be stopped
  * @param   [in] int appMailbox: Index of mailbox used by message handler
  *          process
  */
-inline void stopLocomotives(int appMailbox)
+void stopLocomotives(unsigned char train, int appMailbox)
 {
     unsigned int msgSize = sizeof(AppMessage);
     char replyMsg[msgSize];
@@ -27,7 +28,7 @@ inline void stopLocomotives(int appMailbox)
 
     /* Build locomotive stop request */
     reply.msgAddr->code = MAG_DIR_SET;
-    reply.msgAddr->arg1 = ALL;
+    reply.msgAddr->arg1 = train;
     reply.msgAddr->arg2 = STOP;
 
     /* Send request to data link layer */
@@ -44,12 +45,17 @@ void AppMessageHandler(void)
 {
     int appMailbox;
     int senderMB;
-    struct RoutingTableEntry path;
+    struct RoutingTableEntry * path;
     int msgSize = sizeof(AppMessage);
     /* Reserve space for messages */
     char message[msgSize];
     union AppFromMB received;
     received.recvAddr = message;
+    char replyMsg[msgSize];
+    union AppFromMB reply;
+    reply.recvAddr = replyMsg;
+    union Mag_Dir replySpeed;
+    replySpeed.Speed = &(reply.msgAddr->arg2);
 
     /* Bind to dedicated mailbox */
     appMailbox = bind(APPLAYERMB);
@@ -71,9 +77,37 @@ void AppMessageHandler(void)
             /* Hall sensor has been triggered */
             case HALL_TRIGGERED:
                 //TODO: Need to check state of each train to determine which train triggered this hall sensor
-             //   path = getPath(received.msgAddr->arg1, States[0].destination);
+                path = getPath(received.msgAddr->arg1, TState.destination);
 
-                /* Determine whether any messages need to be sent to adjust the train's course */
+                /* Check whether train must be stopped */
+                if(path->stop == PATH_STOP)
+                {
+                    /* Locomotive is at its destination so it must be stopped */
+                    stopLocomotives(0, appMailbox);
+                }
+                else
+                {
+                    /* Determine whether any messages need to be sent to adjust the train's course.
+                     * Start by checking for a needed magnitude/direction set message.
+                     */
+                    if(path->dir != TState.speed.direction)
+                    {
+                        /* Direction needs to be changed so send speed change request */
+                        reply.msgAddr->code = MAG_DIR_SET;
+                        reply.msgAddr->arg1 = 0;
+                        replySpeed.Speed->direction = path->dir;
+                        replySpeed.Speed->magnitude = TState.speed.magnitude;
+
+                        sendMessage(APPDATALINKMB, appMailbox, reply.recvAddr, msgSize);
+                    }
+
+                }
+
+                /* Must also send acknowledgment message */
+                reply.msgAddr->code = HALL_TRIGGERED_ACK;
+                reply.msgAddr->arg1 = received.msgAddr->arg1;
+                reply.msgAddr->arg2 = 0;
+                sendMessage(APPDATALINKMB, appMailbox, reply.recvAddr, msgSize);
 
                 break;
             /* Reply to a hall sensor reset request */
@@ -82,7 +116,7 @@ void AppMessageHandler(void)
                 if(received.msgAddr->arg2 != 0)
                 {
                     /* Stop all locomotives */
-                    stopLocomotives(appMailbox);
+                    stopLocomotives(ALL, appMailbox);
                 }
                 break;
             /* Reply to a magnitude/direction set request */
@@ -91,7 +125,7 @@ void AppMessageHandler(void)
                 if(received.msgAddr->arg2 != 0)
                 {
                     /* Stop all locomotives */
-                    stopLocomotives(appMailbox);
+                    stopLocomotives(ALL, appMailbox);
                 }
                 break;
             /* Reply to a switch-throw request */
@@ -100,7 +134,7 @@ void AppMessageHandler(void)
                 if(received.msgAddr->arg2 != 0)
                 {
                     /* Stop all locomotives */
-                    stopLocomotives(appMailbox);
+                    stopLocomotives(ALL, appMailbox);
                 }
                 break;
             /* If message code is not recognized, do not act on message */

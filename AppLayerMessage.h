@@ -39,11 +39,11 @@ struct AppLayerSpeed
   unsigned direction  : 1;
 };
 
-/* Union of unsigned character and AppLayerSpeed */
+/* Union of unsigned character pointer and AppLayerSpeed pointer */
 union Mag_Dir
 {
-  unsigned char rawByte;
-  struct AppLayerSpeed Speed;
+  unsigned char * rawByte;
+  struct AppLayerSpeed * Speed;
 };
 
 /* Structure of application layer messages */

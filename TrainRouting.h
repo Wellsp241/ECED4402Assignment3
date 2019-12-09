@@ -8,6 +8,7 @@
  * @date
  */
 #pragma once
+#include "AppLayerMessage.h"
 
 /* Definition of number of switches on train set alongside
  * indicator of no switches
@@ -26,11 +27,13 @@
 #define SW_DIVERGED     (0)
 #define SW_STRAIGHT     (1)
 
-/* Definition of number of trains */
-#define NUM_TRAINS      (1)
+/* Definition of whether train must stop or continue */
+#define PATH_GO         (0)
+#define PATH_STOP       (1)
 
 /* Definition of default train state values */
 #define DEFAULT_SPEED       (5)
+#define DEFAULT_DIRECTION   (DIR_CW)
 #define DEFAULT_DESTINATION (1)
 
 
@@ -52,12 +55,12 @@ struct RoutingTableEntry
 /* Structure of train state */
 struct TrainState
 {
-    unsigned char speed;
+    struct AppLayerSpeed speed;
     unsigned char destination;
 };
 
 
-extern struct TrainState States[NUM_TRAINS];
+extern struct TrainState TState;
 
 /* Function used to get path between two hall sensors */
-struct RoutingTableEntry getPath(unsigned char start, unsigned char finish);
+inline struct RoutingTableEntry * getPath(unsigned char start, unsigned char finish);
