@@ -10,7 +10,7 @@
  * @date    7-Dec-2019 (modified)
  */
 #pragma once
-
+#include "Process.h"
 #define GPIO_PORTA_AFSEL_R  (*((volatile unsigned long *)0x40058420))   // GPIOA Alternate Function Select Register
 #define GPIO_PORTA_DEN_R    (*((volatile unsigned long *)0x4005851C))   // GPIOA Digital Enable Register
 #define GPIO_PORTA_PCTL_R   (*((volatile unsigned long *)0x4005852C))   // GPIOA Port Control Register
@@ -81,6 +81,7 @@
 #define NUL 0x00
 
 
+
 /* Cursor position string */
 
 /* Define the cursor position data structure */
@@ -94,28 +95,33 @@ typedef struct CUP
     char col[2];    /* 01 through 80 */
     char cmdchar;
     char nul;
-}cursor;
+}Cursor;
 
 #ifndef GLOBAL_UART
 #define GLOBAL_UART
 
 
-    extern void UART_Init(void);
+    extern void UART0_Init(void);
     extern void InterruptEnable(unsigned long);
-    extern void UART_IntEnable(unsigned long);
+    extern void UART0_IntEnable(unsigned long);
     extern void UART0_IntHandler(void);
-    extern void UART1_IntHandler(void);
-    extern void forceOutputUART0(char);
-    extern char getDataRegister(void);
-    extern void printStringUART0(char*);
+    extern void forceOutput(char);
+    extern int getDataRegister(char *);
+    extern void printString(char*,PCB*);
+    extern void systemPrintString(char*);
     extern void printWarning(int);
-    extern void uartProcess(void);
+    extern void uart0_OutputServer(void);
+    extern void uart0_InputServer(void);
+    extern int get_UART0_InputState(void);
+
 
 
 #else
 
-    void forceOutputUART0(char);
-    void printString(char*);
+    void systemPrintString(char*);
+    void forceOutput(char);
+    void printString(char*,PCB*);
     void printWarning(int);
+    void dataRecieved(void);
 
 #endif// GLOBAL_UART

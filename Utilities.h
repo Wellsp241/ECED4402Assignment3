@@ -10,6 +10,7 @@
 #include "Process.h"
 #include <stdio.h>
 #include <stdlib.h>
+
 #define     disable()   __asm(" cpsid i") //disable interrupts
 #define     enable()    __asm(" cpsie i")//enable interrupts
 #define     ENTER       0x0d //ASCII Characters
@@ -36,9 +37,11 @@
 #define     DEFAULT_FAIL FAILURE
 #define     MESSAGE_SYS_LIMIT 32
 #define     RECEIVE_LOG_AMOUNT MESSAGE_SYS_LIMIT
-#define     UART_OP_MB     0   //uart always mailbox 0
-#define     UART_IP_MB     1
+#define     UART0_OP_MB     0   //uart always mailbox 0
+#define     UART0_IP_MB     1
 #define     TIMER_MB       2
+#define     UART1_OP_MB     3   //uart always mailbox 0
+#define     UART1_IP_MB     4
 #define     CURSOR_STRING   9
 #define     FREE            1   //Timer states
 #define     TAKEN           0

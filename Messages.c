@@ -11,13 +11,13 @@
  * @date    26-Nov-2019 (edited)
  */
 
-#define GLOBAL_MESSAGES
-#include "Messages.h"
 #include "SVC.h"
 #include "KernelCall.h"
-#include "Utilities.h"
 #include <stdio.h>
 #include <stdlib.h>
+
+#define GLOBAL_MESSAGES
+#include "Messages.h"
 
 #define  NEXT i+1
 #define  PREV i-1
@@ -123,7 +123,7 @@ void initMessagePool(void)
  */
 void addReceiveLog(ReceiveLog * newLog)
 {
-    newLog->from =NULL;
+    newLog->mailbox =NULL;
     newLog->next = receiveLogPool;
     receiveLogPool = newLog;
 }
@@ -188,7 +188,7 @@ int getOldestMessageMB(PCB* owner)
     int toReturn = ANY;
     if(owner->receiveAnyHead)
     {
-        toReturn = owner->receiveAnyHead->from;
+        toReturn = owner->receiveAnyHead->mailbox;
     }
     return toReturn;
 }

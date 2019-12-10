@@ -11,7 +11,7 @@
 
 #define MAX_QUEUE_SIZE 128
 
-enum inputQueue {UART, SYSTICK};
+enum inputQueue {UART0,UART1, SYSTICK};
 /*
  * @brief   queue structure
  * @details interruptType fifo[]: array for folding the interrupt structures
@@ -32,5 +32,7 @@ typedef struct queue_
 
         extern int enqueue(interruptType);
         extern int dequeue(interruptType *);
+#else
+        queue * getInterruptQueue(int type);
 
 #endif// GLOBAL_QUEUES

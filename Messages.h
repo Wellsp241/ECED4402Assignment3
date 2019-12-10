@@ -35,7 +35,7 @@ typedef struct Message_
 typedef struct ReceiveLog_
 {
     // Mailbox to check
-    int from;
+    int mailbox;
     // Next receive log
     struct ReceiveLog_ * next;
     // Prev receive log

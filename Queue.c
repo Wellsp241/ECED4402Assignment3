@@ -18,7 +18,8 @@
 
 #define NUMBER_OF_QUEUES 2
 /*Declare queue array for INPUT (0) and OUTPUT (1) interrupts*/
-static queue uartInputQueue = {{NULL},NULL,NULL};
+static queue uart0_InputQueue = {{NULL},NULL,NULL};
+static queue uart1_InputQueue = {{NULL},NULL,NULL};
 static queue systickInputQueue = {{NULL},NULL,NULL};
 
 /*
@@ -36,7 +37,7 @@ static queue systickInputQueue = {{NULL},NULL,NULL};
  */
 int enqueue(interruptType intType)
 {
-    queue * selectedQueue = (intType.type) ? &systickInputQueue : &uartInputQueue;
+    queue * selectedQueue = getInterruptQueue(intType.type);
     disable();
     /* gives circular queue functionality*/
     unsigned int tmpPtr = (selectedQueue->writePtr+1)&(MAX_QUEUE_SIZE-1);
@@ -64,7 +65,7 @@ int enqueue(interruptType intType)
  */
 int dequeue(interruptType * intType)
 {
-    queue * selectedQueue = (intType->type) ? &systickInputQueue : &uartInputQueue;
+    queue * selectedQueue = getInterruptQueue(intType->type);
     if((selectedQueue->writePtr == selectedQueue->readPtr))//buffer is empty
     {
         return EMPTY;
@@ -77,6 +78,24 @@ int dequeue(interruptType * intType)
     enable();
 
     return SUCCESS;
+}
+
+queue * getInterruptQueue(int type)
+{
+    queue * toReturn;
+    switch(type)
+    {
+    case SYSTICK:
+         toReturn = &systickInputQueue;
+    break;
+    case UART0:
+        toReturn = &uart0_InputQueue;
+    break;
+    case UART1:
+        toReturn = &uart1_InputQueue;
+    break;
+    }
+    return toReturn;
 }
 
 

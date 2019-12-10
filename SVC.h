@@ -9,7 +9,7 @@
 #pragma once
 #include "Process.h"
 
-enum pendType {CONTEXT,INPUT,TIMER};
+enum pendType {CONTEXT,INPUT_0,INPUT_1,TIMER};
 
 /* Macro used to set the priority of the pendSV interrupt */
 #define SETPENDSVPRIORITY ((*(volatile unsigned long *)0xE000ED20) |= 0x00E00000UL)

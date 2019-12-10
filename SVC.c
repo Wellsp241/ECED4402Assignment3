@@ -201,12 +201,12 @@ void pendSV(void)
 
     switch(pendType)
     {
-    case INPUT:
-    if (getInputState())
+    case INPUT_0:
+    if (get_UART0_InputState())
     {
         save_registers();
         callerPCB = RUNNING;
-        addPCB(getOwnerPCB(UART_IP_MB),3);
+        addPCB(getOwnerPCB(UART0_IP_MB),3);
         if(RUNNING != callerPCB)
         {
             callerPCB -> sp = get_PSP();
@@ -215,20 +215,20 @@ void pendSV(void)
         restore_registers();
     }
     break;
-    case TIMER:
-    if(getTimerProcessState()&&getTimerState())
-    {
-        save_registers();
-        callerPCB = RUNNING;
-        addPCB(getOwnerPCB(TIMER_MB),4);
-        if(RUNNING != callerPCB)
-        {
-            callerPCB -> sp = get_PSP();
-            set_PSP(RUNNING -> sp);
-        }
-        restore_registers();
-    }
-    break;
+//    case TIMER:
+//    if(getTimerProcessState()&&getTimerState())
+//    {
+//        save_registers();
+//        callerPCB = RUNNING;
+//        addPCB(getOwnerPCB(TIMER_MB),4);
+//        if(RUNNING != callerPCB)
+//        {
+//            callerPCB -> sp = get_PSP();
+//            set_PSP(RUNNING -> sp);
+//        }
+//        restore_registers();
+//    }
+//    break;
    case CONTEXT:
 
         disable();

@@ -36,7 +36,7 @@ void idleProcess(void)
     {
     while(cursorPos<IDLE_SYMBOLS)
     {
-    sendMessage(UART_OP_MB, mailBox, "*", CHAR_SEND);
+    sendMessage(UART0_OP_MB, mailBox, "*", CHAR_SEND);
     while(k<500000)
     {
         wait =0;
@@ -47,7 +47,7 @@ void idleProcess(void)
     }
     cursorPos=0;
     runningPCB->xAxisCursorPosition=cursorPos;
-    sendMessage(UART_OP_MB, mailBox, CLEAR_LINE, strlen(CLEAR_LINE) + 1);
+    sendMessage(UART0_OP_MB, mailBox, CLEAR_LINE, strlen(CLEAR_LINE) + 1);
     }
 }
 
@@ -62,7 +62,7 @@ void defaultProcess(void)
     int i = 0;
     while (i < EXAMPLE_MESSAGES_AMOUNT)
     {
-        sendMessage(UART_OP_MB, mailBox, idString, POSITION_DIGITS + 1);
+        sendMessage(UART0_OP_MB, mailBox, idString, POSITION_DIGITS + 1);
         i++;
     }
 
@@ -87,7 +87,7 @@ void defaultProcessNice(void)
     {
 
         if(i==1){nice(1);}
-        sendMessage(UART_OP_MB, mailBox, idString, POSITION_DIGITS + 1);
+        sendMessage(UART0_OP_MB, mailBox, idString, POSITION_DIGITS + 1);
         i++;
     }
 
@@ -110,12 +110,12 @@ void Priority2Process10(void)
     char cont[EXAMPLE_MESSAGE_LENGTH];
 
         strcpy(cont, " Input to Process 10 ");
-        sendMessage(UART_IP_MB, mailBox, cont, strlen(cont) + 1);
+        sendMessage(UART0_IP_MB, mailBox, cont, strlen(cont) + 1);
         recvMessage(mailBox, &toMB, cont, strlen(cont) + 1);
-        sendMessage(UART_OP_MB, mailBox, cont, strlen(cont) + 1);
+        sendMessage(UART0_OP_MB, mailBox, cont, strlen(cont) + 1);
         sendMessage(TIMER_MB, mailBox,"60", 2);
         recvMessage(mailBox, &timerMB , cont, strlen(cont) + 1);
-        sendMessage(UART_OP_MB, mailBox, cont, strlen(cont) + 1);
+        sendMessage(UART0_OP_MB, mailBox, cont, strlen(cont) + 1);
 
     unbind(mailBox);
 
@@ -137,9 +137,8 @@ int main(void)
 
     /* Register idle process first */
     registerResult |= registerProcess(idleProcess, 0, 0);
-    registerResult |= registerProcess(uartOutputServer, 1, 4);
-    registerResult |= registerProcess(uartInputServer, 2, 3);
-    registerResult |= registerProcess(timeServer, 3, 4);
+    registerResult |= registerProcess(uart0_OutputServer, 1, 4);
+    registerResult |= registerProcess(uart0_InputServer, 2, 3);
 
 
     /* Register other test processes */
@@ -150,9 +149,9 @@ int main(void)
     {
         /* Initialize required hardware + interrupts */
         initpendSV();
-        UART0_Init();           // Initialize UART0
+        UART_Init();           // Initialize UART0
         InterruptEnable(INT_VEC_UART0);       // Enable UART0 interrupts
-        UART0_IntEnable(UART_INT_RX | UART_INT_TX); // Enable Receive and Transmit interrupts
+        UARTIntEnable(UART_INT_RX | UART_INT_TX); // Enable Receive and Transmit interrupts
         SysTickPeriod(HUNDREDTH_WAIT);//HUNDREDTH_WAIT
         SysTickIntEnable();
         systemPrintString(CLEAR_SCREEN);

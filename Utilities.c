@@ -98,9 +98,9 @@ void getProcessCursor( PCB* printingProcess, char *cursorString)
 void printLineMarker(int myID, int mailBox)
 {
     char idString[POSITION_DIGITS];
-    sendMessage(UART_OP_MB, mailBox, RED_TEXT, strlen(RED_TEXT)+1);
+    sendMessage(UART0_OP_MB, mailBox, RED_TEXT, strlen(RED_TEXT)+1);
     formatLineNumber(myID, idString);
-    sendMessage(UART_OP_MB, mailBox, idString, POSITION_DIGITS + 1);
-    sendMessage(UART_OP_MB, mailBox, LINE_MARK, LINE_MARK_LENGTH);
-    sendMessage(UART_OP_MB, mailBox, CLEAR_MODE, strlen(CLEAR_MODE)+1);
+    sendMessage(UART0_OP_MB, mailBox, idString, POSITION_DIGITS + 1);
+    sendMessage(UART0_OP_MB, mailBox, LINE_MARK, LINE_MARK_LENGTH);
+    sendMessage(UART0_OP_MB, mailBox, CLEAR_MODE, strlen(CLEAR_MODE)+1);
 }
