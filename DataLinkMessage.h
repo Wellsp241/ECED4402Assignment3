@@ -10,6 +10,10 @@
 #pragma once
 #include "AppLayerMessage.h"
 
+/* Define mailboxes used within data link layer */
+#define APPDATALINKMB   (8)
+#define PHYSDATALINKMB  (9)
+
 /* Enumeration of data link layer control types */
 enum DataLinkType
 {
@@ -19,6 +23,7 @@ enum DataLinkType
 };
 
 /* Structure of data link control field */
+#pragma pack(1)
 typedef struct DataLinkControl
 {
   unsigned receivedNum      : 3;
@@ -42,5 +47,5 @@ union DLFromMB
 };
 
 
-void DataLinkfromAppHandler(char * message);
-void DataLinkfromPhysHandler(char * message);
+void DataLinkfromAppHandler(void);
+void DataLinkfromPhysHandler(void);

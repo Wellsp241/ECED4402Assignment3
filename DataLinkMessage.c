@@ -5,13 +5,14 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    28-Nov-2019 (created)
- * @date    9-Dec-2019 (edited)
+ * @date    10-Dec-2019 (edited)
  */
 #include "stdlib.h"
 #include "string.h"
 #include "KernelCall.h"
 #include "DataLinkMessage.h"
 #include "PhysLayerMessage.h"
+#include "Utilities.h"
 
 
 /* Definition of sliding window size */
@@ -55,7 +56,7 @@ inline void forwardMessages(unsigned char start)
         toForward.msgAddr = &sentQueue[i];
 
         /* Send this message to the physical layer */
-        PhysLayerFromDLHandler(toForward.recvAddr, fwdSize);
+        sendMessage(DATALINKPHYSMB, PHYSDATALINKMB, toForward.recvAddr, fwdSize);
     }
 
     return;
@@ -66,11 +67,11 @@ inline void forwardMessages(unsigned char start)
  * @brief   Handler of messages to data link layer
  *          from application layer. Prepares these messages
  *          to be forwarded through the physical layer.
- * @param   [in] char * message: Pointer to message received from
- *          application layer
  */
-void DataLinkfromAppHandler(char * message)
+void DataLinkfromAppHandler(void)
 {
+    int Mailbox;
+    int senderMB;
     int recvSize = sizeof(AppMessage);
     int fwdSize = sizeof(DLMessage);
     /* Reserve space for a data link format message.
@@ -86,26 +87,40 @@ void DataLinkfromAppHandler(char * message)
     union AppFromMB received;
     received.msgAddr = &(toForward.msgAddr->appMessage);
 
-    /* Copy application layer packet into message to forward */
-    memcpy(received.recvAddr, message, recvSize);
+    /* Bind to dedicated mailbox */
+    Mailbox = bind(APPDATALINKMB);
 
-    /* Fill control field of message to forward with current data link state.
-     * Note that the type field of our saved DLState is not ever changed from DATA.
+    /* Ensure bind was successful */
+    if(Mailbox == SUCCESS)
+    {
+        /* Loop indefinitely while processing messages from application layer */
+        while(1)
+        {
+            /* Receive message from dedicated mailbox. These messages follow the AppLayerMessage format */
+            recvMessage(APPDATALINKMB, &senderMB, received.recvAddr, &recvSize);
+
+            /* Fill control field of message to forward with current data link state.
+             * Note that the type field of our saved DLState is not ever changed from DATA.
+             */
+            toForward.msgAddr->control = DLState;
+
+            /* Assemble message to forward */
+            toForward.msgAddr->length = recvSize;
+
+            /* Forward message to physical layer */
+            sendMessage(DATALINKPHYSMB, APPDATALINKMB, toForward.recvAddr, fwdSize);
+
+            /* Copy this message to the sent queue in case of failure */
+            sentQueue[DLState.sequenceNum] = *(toForward.msgAddr);
+
+            /* Increment Sequence Number of Current State */
+            DLState.sequenceNum = INCREMENT_SEQUENCE(DLState.sequenceNum);
+        }
+    }
+
+    /* If this return statement is reached, the process terminates because
+     * mailbox bind was unsuccessful
      */
-    toForward.msgAddr->control = DLState;
-
-    /* Assemble message to forward */
-    toForward.msgAddr->length = fwdSize;
-
-    /* Forward message to physical layer */
-    PhysLayerFromDLHandler(toForward.recvAddr, fwdSize);
-
-    /* Copy this message to the sent queue in case of failure */
-    sentQueue[DLState.sequenceNum] = *(toForward.msgAddr);
-
-    /* Increment Sequence Number of Current State */
-    DLState.sequenceNum = INCREMENT_SEQUENCE(DLState.sequenceNum);
-
     return;
 }
 
@@ -114,10 +129,13 @@ void DataLinkfromAppHandler(char * message)
  * @brief   Handler of messages to data link layer
  *          from physical layer. Prepares these messages
  *          to be forwarded to the application layer, if applicable.
- * @param   [in] char * message: Pointer to message received from physical layer
  */
-void DataLinkfromPhysHandler(char * message)
+void DataLinkfromPhysHandler(void)
 {
+    int Mailbox;
+    int senderMB;
+    int recvSize = sizeof(DLMessage);
+    int fwdSize = sizeof(AppMessage);
     int ctlSize = sizeof(DLState);
     /* Reserve space for a data link format message.
      * received points to start of DLMessage
@@ -126,59 +144,77 @@ void DataLinkfromPhysHandler(char * message)
      * Field:       |Ctrl|Length|AppMessage|
      * Pointers: received     toForward
      */
+    char Msg[recvSize];
     union DLFromMB received;
-    received.recvAddr = message;
+    received.recvAddr = Msg;
     union AppFromMB toForward;
     toForward.msgAddr = &(received.msgAddr->appMessage);
 
-    /* Act on received message's type */
-    switch(received.msgAddr->control.type)
+    /* Bind to dedicated mailbox */
+    Mailbox = bind(PHYSDATALINKMB);
+
+    /* Ensure bind was successful */
+    if(Mailbox == SUCCESS)
     {
-    /* Data message; forward this to the application layer */
-    case DATA:
-        /* First check that attached sequence number matches what we expect */
-        if(received.msgAddr->control.sequenceNum != DLState.receivedNum)
+        /* Loop indefinitely while processing message received from the physical layer */
+        while(1)
         {
-            /* Sequence number mismatch has occurred so must send NACK reply and
-             * discard the received packet.
-             */
-            received.msgAddr->control = DLState;
-            received.msgAddr->control.type = NACK;
+            /* Receive message from dedicated mailbox. These messages follow the DataLinkMessage format */
+            recvMessage(PHYSDATALINKMB, &senderMB, received.recvAddr, &recvSize);
 
-            /* Send this reply to the physical layer for forwarding to the train set */
-            PhysLayerFromDLHandler(received.recvAddr, ctlSize);
+            /* Act on received message's type */
+            switch(received.msgAddr->control.type)
+            {
+            /* Data message; forward this to the application layer */
+            case DATA:
+                /* First check that attached sequence number matches what we expect */
+                if(received.msgAddr->control.sequenceNum != DLState.receivedNum)
+                {
+                    /* Sequence number mismatch has occurred so must send NACK reply and
+                     * discard the received packet.
+                     */
+                    received.msgAddr->control = DLState;
+                    received.msgAddr->control.type = NACK;
+
+                    /* Send this reply to the physical layer for forwarding to the train set */
+                    sendMessage(DATALINKPHYSMB, PHYSDATALINKMB, received.recvAddr, ctlSize);
+                }
+                else
+                {
+                    /* Sequence number matches so first increment received number of current state */
+                    DLState.receivedNum = INCREMENT_SEQUENCE(DLState.receivedNum);
+
+                    /* Since the Nr field of this received message implies an ACK, need to
+                     * reset timer on ACKed messages.
+                     */
+                    //TODO: Do this once time server has been finished
+
+                    /* Build control field to send to physical layer */
+                    received.msgAddr->control = DLState;
+                    received.msgAddr->control.type = ACK;
+                    sendMessage(DATALINKPHYSMB, PHYSDATALINKMB, received.recvAddr, ctlSize);
+
+                    /* Send non-data link portion of received message to application layer */
+                    sendMessage(DATALINKAPPMB, PHYSDATALINKMB, toForward.recvAddr, fwdSize);
+                }
+                break;
+            /* Acknowledgment message; can discard acknowledged messages */
+            case ACK:
+                //TODO: When time server is in place, need to reset timer on acknowledged messages
+                break;
+            /* Negative Acknowledgment message; must forward each missed message */
+            case NACK:
+                forwardMessages(received.msgAddr->control.receivedNum);
+                break;
+            default:
+                break;
+            }
         }
-        else
-        {
-            /* Sequence number matches so first increment received number of current state */
-            DLState.receivedNum = INCREMENT_SEQUENCE(DLState.receivedNum);
-
-            /* Since the Nr field of this received message implies an ACK, need to
-             * reset timer on ACKed messages.
-             */
-            //TODO: Do this once time server has been finished
-
-            /* Build control field to send to physical layer */
-            received.msgAddr->control = DLState;
-            received.msgAddr->control.type = ACK;
-            PhysLayerFromDLHandler(received.recvAddr, ctlSize);
-
-            /* Send non-data link portion of received message to application layer */
-            AppfromDataLinkHandler(toForward.recvAddr);
-        }
-        break;
-    /* Acknowledgment message; can discard acknowledged messages */
-    case ACK:
-        //TODO: When time server is in place, need to reset timer on acknowledged messages
-        break;
-    /* Negative Acknowledgment message; must forward each missed message */
-    case NACK:
-        forwardMessages(received.msgAddr->control.receivedNum);
-        break;
-    default:
-        break;
     }
 
+    /* If this return statement is reached, the process terminates because
+     * mailbox bind was unsuccessful
+     */
     return;
 }
 

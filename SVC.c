@@ -390,7 +390,7 @@ else /* Subsequent SVCs */
     break;
     case RECEIVEMSG:
         recvMsg = (ReceiveMessage *)kcaptr ->arg1;
-        kcaptr->rtnvalue = recvMsg->maxSize;
+        kcaptr->rtnvalue = *((int *)recvMsg->maxSize);
         if(kernelReceive(recvMsg->bindedMB,recvMsg->returnMB,
                       recvMsg->contents, &(kcaptr->rtnvalue)) < 0)
         {

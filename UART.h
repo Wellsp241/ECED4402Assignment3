@@ -101,17 +101,20 @@ typedef struct CUP
 #define GLOBAL_UART
 
 
-    extern void UART0_Init(void);
+    extern void UART_Init(void);
     extern void InterruptEnable(unsigned long);
-    extern void UART0_IntEnable(unsigned long);
+    extern void UART_IntEnable(unsigned long);
     extern void UART0_IntHandler(void);
-    extern void forceOutput(char);
+    extern void UART1_IntHandler(void);
+    extern void forceOutputUART0(char);
     extern int getDataRegister(char *);
     extern void printString(char*,PCB*);
     extern void systemPrintString(char*);
     extern void printWarning(int);
     extern void uart0_OutputServer(void);
     extern void uart0_InputServer(void);
+    extern void uart1_OutputServer(void);
+    extern void uart1_InputServer(void);
     extern int get_UART0_InputState(void);
 
 

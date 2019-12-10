@@ -6,7 +6,7 @@
  *
  * @author  Liam JA MacDonald
  * @date    20-Oct-2019 (created)
- * @date    28-Nov-2019 (modified)
+ * @date    10-Dec-2019 (modified)
  */
 
 #define GLOBAL_UART
@@ -19,6 +19,7 @@
 #include "Messages.h"
 #include "Queue.h"
 #include <ctype.h>
+#include "PhysLayerMessage.h"
 
 static interruptType uart0_ReceiveBuffer = {UART0,NUL};
 static interruptType uart1_ReceiveBuffer = {UART1,NUL};
@@ -42,7 +43,7 @@ void uart0_OutputServer(void)
     while(1)
     {
         recvMessage(UART0_OP_MB, &toMB, cont, &size);
-        printString(cont, getOwnerPCB(toMB));
+        printStringUART0(cont, getOwnerPCB(toMB));
     }
 }
 
@@ -123,8 +124,9 @@ void uart1_OutputServer(void)
     int size = MESSAGE_SYS_LIMIT;
     while(1)
     {
+        size = MESSAGE_SYS_LIMIT;
         recvMessage(UART1_OP_MB, &toMB, cont, &size);
-        printString(cont, getOwnerPCB(toMB));
+        printStringUART1(cont, size);
     }
 }
 
@@ -145,8 +147,6 @@ void uart1_InputServer(void)
     int size = MESSAGE_SYS_LIMIT;
     while (1)
     {
-        recvMessage(UART1_IP_MB, &toMB, cont, &size);
-        sendMessage(UART1_OP_MB, UART1_IP_MB, cont, size);
         cmd = NULL;
         size = NULL;
         inputEntered = FALSE;
@@ -156,25 +156,16 @@ void uart1_InputServer(void)
             {
                 switch (inputBuffer.data)
                 {
-                case ENTER:
+                case ETX:
 
                     cmd = emptyBuffer_1();
                     inputEntered = TRUE;
-                    sendMessage(toMB, UART1_IP_MB, cmd, size);
-
-                    break;
-                case BS:
-
-                    if (removeFromBuffer_1() == SUCCESS)
-                    {
-                        sendMessage(UART1_OP_MB, UART1_IP_MB, &inputBuffer.data, CHAR_SEND);
-                    }
+                    sendMessage(UART1PHYSMB, UART1_IP_MB, cmd, size);
 
                     break;
                 default:
-                    if (addToBuffer_1(toupper(inputBuffer.data)) == SUCCESS)
+                    if (addToBuffer_1(inputBuffer.data) == SUCCESS)
                     {
-                        sendMessage(UART1_OP_MB, UART1_IP_MB, &inputBuffer.data, CHAR_SEND);
                         size++;
                     }
                 }
@@ -271,12 +262,23 @@ void force_UART0_Output(char data)
 }
 
 /*
+ * @brief   Force character into the data register
+ * @param   [in] char data: character to be put into
+ *          data register
+ */
+void force_UART1_Output(char data)
+{
+        while(UART1_FR_R & UART_FR_TXFF);//wait until not busy
+        UART1_DR_R = data;
+}
+
+/*
  * @brief   for printing from a string from process
  *
  * @param   [in] char* string: string to print
  *
  */
-void printString(char* string, PCB * printingProcess)
+void printStringUART0(char* string, PCB * printingProcess)
 {
     //check if its and escape sequence
     char cursorPosition[CURSOR_STRING];
@@ -305,6 +307,22 @@ void systemPrintString(char* string)
     while(*string)
     {
         force_UART0_Output(*(string++));
+    }
+}
+
+/*
+ * @brief   for printing a string through UART1
+ *
+ * @param   [in] char* string: string to print
+ * @param   [in] unsigned char size: size in bytes of string
+ *
+ */
+void printStringUART1(char* string, unsigned char size)
+{
+    unsigned char i;
+    for(i = 0; i < size; i++)
+    {
+        force_UART1_Output(string[i]);
     }
 }
 
@@ -340,19 +358,6 @@ void UART0_IntHandler(void)
         UART0_ICR_R |= UART_INT_TX;
     }
 
-}
-
-
-
-/*
- * @brief   Force character into the data register
- * @param   [in] char data: character to be put into
- *          data register
- */
-void force_UART1_Output(char data)
-{
-        while(UART0_FR_R & UART_FR_TXFF);//wait until not busy
-        UART0_DR_R = data;
 }
 
 /*

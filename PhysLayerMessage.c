@@ -5,7 +5,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    8-Dec-2019 (created)
- * @date    9-Dec-2019 (edited)
+ * @date    10-Dec-2019 (edited)
  */
 #include "string.h"
 #include "KernelCall.h"
@@ -38,12 +38,15 @@ unsigned char getChecksum(char * DLMsg, int msgSize)
 /*
  * @brief   Handler of messages to physical layer from
  *          data link layer.
- * @param   [in] char * message: Pointer to data link message to be forwarded
- * @param   [in] unsigned int recvSize: Size of received message in bytes
  */
-void PhysLayerFromDLHandler(char * message, unsigned int recvSize)
+void PhysLayerFromDLHandler(void)
 {
+    int Mailbox;
+    int senderMB;
+    int maxrecvSize = sizeof(DLMessage);
+    int recvSize;
     int i;
+    char tempChecksum;
     /* Reserve space for a physical layer format message.
      * received points to first byte of container after
      * start byte (STX)
@@ -55,45 +58,60 @@ void PhysLayerFromDLHandler(char * message, unsigned int recvSize)
     char * received = &toForward[1];
     char * checksum;
 
-    /* Set start character of message to forward */
-    toForward[0] = STX;
+    /* Bind to dedicated mailbox */
+    Mailbox = bind(DATALINKPHYSMB);
 
-    /* Receive message from mailbox. These messages follow the DataLinkMessage format */
-    memcpy(received, message, recvSize);
-
-    /* Add extra DLEs to message where necessary */
-    for(i = 0; i < recvSize; i++)
+    /* Ensure bind was successful */
+    if(Mailbox == SUCCESS)
     {
-        /* Check whether current character is a special character */
-        if((received[i] == STX) ||
-           (received[i] == ETX) ||
-           (received[i] == DLE))
+        /* Set start character of message to forward */
+        toForward[0] = STX;
+
+        /* Loop indefinitely while processing messages from data link layer */
+        while(1)
         {
-            /* First move contents of message to make room for extra character */
-            memmove(&received[i + 1], &received[i], recvSize - i);
+            /* Receive message from data link layer. These messages will follow the DataLinkMessage format */
+            recvSize = maxrecvSize;
+            recvMessage(DATALINKPHYSMB, &senderMB, received, &recvSize);
 
-            /* Insert extra DLE character */
-            received[i] = DLE;
+            /* Calculate checksum of message to forward */
+            tempChecksum = getChecksum(received, recvSize);
 
-            /* Adjust iterator and message size */
-            i++;
-            recvSize++;
+            /* Add extra DLEs to message where necessary */
+            for(i = 0; i < recvSize; i++)
+            {
+                /* Check whether current character is a special character */
+                if((received[i] == STX) ||
+                   (received[i] == ETX) ||
+                   (received[i] == DLE))
+                {
+                    /* First move contents of message to make room for extra character */
+                    memmove(&received[i + 1], &received[i], recvSize - i);
+
+                    /* Insert extra DLE character */
+                    received[i] = DLE;
+
+                    /* Adjust iterator and message size */
+                    i++;
+                    recvSize++;
+                }
+            }
+
+            /* Update checksum pointer */
+            checksum = received + recvSize;
+            *checksum = tempChecksum;
+
+            /* Add ETX character and null terminator after checksum */
+            *(checksum + 1) = ETX;
+
+            /* Send this packet to UART1 handler for transmission */
+            sendMessage(UART1_OP_MB, DATALINKPHYSMB, toForward, recvSize + NUMPHYSICALBYTES);
         }
     }
 
-    /* Update checksum pointer */
-    checksum = received + recvSize;
-
-    /* Calculate checksum of message to forward */
-    *checksum = getChecksum(received, recvSize);
-
-    /* Add ETX character after checksum */
-    *(checksum + 1) = ETX;
-
-    /* Send this packet to UART1 handler for transmission */
-    //TODO: Get mailbox number of UART1 handler here
-    //sendMessage(UART1_OP_MB, DLtoPhysMB, toForward, recvSize + NUMPHYSCIALBYTES);
-
+    /* If this return statement is reached, the process terminates because
+     * mailbox bind was unsuccessful
+     */
     return;
 }
 
@@ -125,7 +143,7 @@ void PhysLayerFromUART1Handler(void)
     UART1toPhysMB = bind(UART1PHYSMB);
 
     /* Ensure that mailbox bind was successful */
-    if(UART1toPhysMB == UART1PHYSMB)
+    if(UART1toPhysMB == SUCCESS)
     {
         /* Loop indefinitely while processing messages received from
          * UART1 handler
@@ -134,7 +152,7 @@ void PhysLayerFromUART1Handler(void)
         {
             /* Receive message from mailbox. These messages follow the PhysLayerMessage format */
             recvSize = maxrecvSize;
-            recvMessage(UART1toPhysMB, &senderMB, received, &recvSize);
+            recvMessage(UART1PHYSMB, &senderMB, received, &recvSize);
             fwdSize = recvSize - NUMPHYSICALBYTES;
 
             /* Remove extra DLEs from message to forward */
@@ -156,7 +174,7 @@ void PhysLayerFromUART1Handler(void)
             if(getChecksum(toForward, fwdSize) == *checksum)
             {
                 /* Forward message to data link layer only if checksum is valid */
-                DataLinkfromPhysHandler(toForward);
+                sendMessage(PHYSDATALINKMB, UART1PHYSMB, toForward, fwdSize);
             }
         }
     }

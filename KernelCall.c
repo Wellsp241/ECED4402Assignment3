@@ -224,7 +224,7 @@ int recvMessage(unsigned int bindedMB, int * returnMB, void * contents, int * ma
         recvArgs.bindedMB = bindedMB;
         recvArgs.returnMB = returnMB;
         recvArgs.contents =contents;
-        recvArgs.maxSize = maxSize;
+        recvArgs.maxSize = (int)maxSize;
         result = procKernelCall(RECEIVEMSG, &recvArgs);
     }
 

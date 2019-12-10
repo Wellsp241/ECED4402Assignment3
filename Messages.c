@@ -310,6 +310,7 @@ int kernelSend(int destinationMB, int fromMB, void * contents, int size)
                      mailboxList[destinationMB].owner->size :
                      size;
       memcpy(mailboxList[destinationMB].owner->contents, contents, copySize);
+      mailboxList[destinationMB].owner->size = copySize;
       addPCB(mailboxList[destinationMB].owner, mailboxList[destinationMB].owner->priority);
       *(mailboxList[destinationMB].owner->returnValue) = copySize;
       mailboxList[destinationMB].owner->contents = NULL;
@@ -435,6 +436,7 @@ int kernelReceive(int bindedMB, int* returnMB, void * contents, int * maxSize)
                             mailboxList[bindedMB].head->size : *maxSize;
 
             memcpy(contents, mailboxList[bindedMB].head->contents, copySize);
+            *maxSize = copySize;
             Message * temp = mailboxList[bindedMB].head;
             mailboxList[bindedMB].head = mailboxList[bindedMB].head->next;
             addToPool(temp);
@@ -451,6 +453,7 @@ int kernelReceive(int bindedMB, int* returnMB, void * contents, int * maxSize)
     runningPCB = (struct ProcessControlBlock_*) getRunningPCB();
     set_PSP(runningPCB->sp);
 
+    *maxSize = runningPCB->size;
     return SUCCESS;
 }
 

@@ -5,7 +5,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    20-Oct-2019 (created)
- * @date    28-Nov-2019 (edited)
+ * @date    9-Dec-2019 (edited)
  */
 #include "KernelCall.h"
 #include <string.h>
@@ -13,8 +13,9 @@
 #include "SVC.h"
 #include "SYSTICK.h"
 #include "Messages.h"
-
-
+#include "AppLayerMessage.h"
+#include "DataLinkMessage.h"
+#include "PhysLayerMessage.h"
 
 
 /*
@@ -127,7 +128,7 @@ void Priority2Process10(void)
  *          Sets highest priority process as Running
  *          traps kernel with service call
  *
- * */
+ */
 int main(void)
 {
     initMessagePool();
@@ -139,11 +140,19 @@ int main(void)
     /* Register idle process first */
     registerResult |= registerProcess(idleProcess, 0, 0);
     registerResult |= registerProcess(uart0_OutputServer, 1, 4);
-    registerResult |= registerProcess(uart0_InputServer, 2, 3);
+    registerResult |= registerProcess(uart0_InputServer, 2, 4);
+    registerResult |= registerProcess(uart1_OutputServer, 3, 4);
+    registerResult |= registerProcess(uart1_InputServer, 4, 4);
+    registerResult |= registerProcess(AppfromDataLinkHandler, 5, 2);
+    registerResult |= registerProcess(AppfromUART0Handler, 6, 3);
+    registerResult |= registerProcess(DataLinkfromAppHandler, 7, 2);
+    registerResult |= registerProcess(DataLinkfromPhysHandler, 8, 2);
+    registerResult |= registerProcess(PhysLayerFromDLHandler, 9, 2);
+    registerResult |= registerProcess(PhysLayerFromUART1Handler, 10, 3);
 
 
     /* Register other test processes */
-    registerResult |= registerProcess(Priority2Process10, 10, 2);
+//    registerResult |= registerProcess(Priority2Process10, 10, 2);
 
 
     if (!registerResult)
@@ -152,6 +161,7 @@ int main(void)
         initpendSV();
         UART_Init();           // Initialize UART0
         InterruptEnable(INT_VEC_UART0);       // Enable UART0 interrupts
+        InterruptEnable(INT_VEC_UART1);
         UARTIntEnable(UART_INT_RX | UART_INT_TX); // Enable Receive and Transmit interrupts
         SysTickPeriod(HUNDREDTH_WAIT);//HUNDREDTH_WAIT
         SysTickIntEnable();

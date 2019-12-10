@@ -5,12 +5,13 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    28-Nov-2019 (created)
- * @date    9-Dec-2019 (edited)
+ * @date    10-Dec-2019 (edited)
  */
 #pragma once
 
 /* Define mailbox used by application layer process */
-#define UART0APPMB    (7)
+#define UART0APPMB    (10)
+#define DATALINKAPPMB (11)
 
 /* Define all indicator for messages sent from application layer */
 #define ALL           (0xFF)
@@ -62,4 +63,5 @@ union AppFromMB
 };
 
 
-void AppfromDataLinkHandler(char * message);
+void AppfromDataLinkHandler(void);
+void AppfromUART0Handler(void);
