@@ -9,8 +9,8 @@
  */
 #pragma once
 
-/* Define application layer mailboxe */
-#define APPLAYERMB  (2)
+/* Define mailbox used by application layer process */
+#define UART0APPMB    (7)
 
 /* Define all indicator for messages sent from application layer */
 #define ALL           (0xFF)
@@ -62,4 +62,4 @@ union AppFromMB
 };
 
 
-void AppMessageHandler(char * message);
+void AppfromDataLinkHandler(char * message);

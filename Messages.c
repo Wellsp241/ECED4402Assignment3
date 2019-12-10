@@ -291,7 +291,6 @@ int kernelUnbind(int releaseMB)
  */
 int kernelSend(int destinationMB, int fromMB, void * contents, int size)
 {
-
    PCB * runningPCB = (struct ProcessControlBlock_*) getRunningPCB();
 
    //check the validity of arguments

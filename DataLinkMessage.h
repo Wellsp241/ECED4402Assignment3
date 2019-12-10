@@ -10,10 +10,6 @@
 #pragma once
 #include "AppLayerMessage.h"
 
-/* Define data link layer mailboxes */
-#define APPDATALINKMB  (3)
-#define PHYSDATALINKMB (4)
-
 /* Enumeration of data link layer control types */
 enum DataLinkType
 {

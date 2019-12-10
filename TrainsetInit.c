@@ -23,7 +23,6 @@ void InitTrainset(void)
 {
     unsigned char i;
     int msgSize = sizeof(AppMessage);
-    struct RoutingTableEntry * path;
     /* Reserve space for application layer message */
     char Msg[msgSize];
     union AppFromMB toForward;
@@ -40,7 +39,7 @@ void InitTrainset(void)
     }
 
     /* Make the train go from sensor 1 to sensor 10 */
-    path = getPath(1, 10);
+    Go(1, 10);
 
     /* Initialization should be done now so terminate */
     return;

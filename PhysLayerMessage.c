@@ -10,6 +10,7 @@
 #include "string.h"
 #include "KernelCall.h"
 #include "PhysLayerMessage.h"
+#include "Utilities.h"
 
 /* Define number of bytes added to data link message by physical layer */
 #define NUMPHYSICALBYTES    (3)
@@ -91,7 +92,7 @@ void PhysLayerFromDLHandler(char * message, unsigned int recvSize)
 
     /* Send this packet to UART1 handler for transmission */
     //TODO: Get mailbox number of UART1 handler here
-    //sendMessage(##, DLtoPhysMB, toForward, recvSize + NUMPHYSCIALBYTES);
+    //sendMessage(UART1_OP_MB, DLtoPhysMB, toForward, recvSize + NUMPHYSCIALBYTES);
 
     return;
 }

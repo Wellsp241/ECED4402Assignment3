@@ -11,7 +11,6 @@
 #include "DataLinkMessage.h"
 
 /* Define physical layer mailboxes */
-#define DLPHYSMB    (5)
 #define UART1PHYSMB  (6)
 
 /* Define start, end and data link escape bytes */

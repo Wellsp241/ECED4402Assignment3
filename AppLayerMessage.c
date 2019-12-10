@@ -11,6 +11,7 @@
 #include "AppLayerMessage.h"
 #include "DataLinkMessage.h"
 #include "TrainRouting.h"
+#include "Utilities.h"
 
 
 /*
@@ -36,10 +37,12 @@ void stopLocomotives(unsigned char train)
 }
 
 /*
- * @brief   Process dedicated to handling messages received
+ * @brief   Function dedicated to handling messages received
  *          from Data Link Layer (originating from train set)
+ * @param   [in] char * message: Pointer to message received from data link
+ *          layer
  */
-void AppMessageHandler(char * message)
+void AppfromDataLinkHandler(char * message)
 {
     struct RoutingTableEntry * path;
     int msgSize = sizeof(AppMessage);
@@ -146,6 +149,36 @@ void AppMessageHandler(char * message)
         break;
     }
 
+    return;
+}
+
+
+/*
+ * @brief   Process giving directions to trains based on user input
+ */
+void AppfromUART0Handler(void)
+{
+    int Mailbox;
+    /* Reserve space for received messages */
+    char received[MESSAGE_SYS_LIMIT];
+
+    /* Bind to dedicated mailbox */
+    Mailbox = bind(UART0APPMB);
+
+    /* Ensure bind was successful */
+    if(Mailbox == UART0APPMB)
+    {
+        /* Loop indefinitely while processing messages received from UART0 handler */
+        while(1)
+        {
+            /* Receive message from dedicated mailbox */
+            recvMessage()
+        }
+    }
+
+    /* If this return statement is reached, the process terminates because
+     * mailbox bind was unsuccessful
+     */
     return;
 }
 

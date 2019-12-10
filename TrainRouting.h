@@ -71,4 +71,4 @@ extern struct TrainState TState;
 extern unsigned char Switch_States;
 
 /* Function used to get path between two hall sensors */
-struct RoutingTableEntry * getPath(unsigned char start, unsigned char finish);
+void Go(unsigned char start, unsigned char finish);

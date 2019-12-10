@@ -108,14 +108,15 @@ void Priority2Process10(void)
     int toMB;
     int timerMB = TIMER_MB;
     char cont[EXAMPLE_MESSAGE_LENGTH];
+    int size = EXAMPLE_MESSAGE_LENGTH + 1;
 
-        strcpy(cont, " Input to Process 10 ");
-        sendMessage(UART0_IP_MB, mailBox, cont, strlen(cont) + 1);
-        recvMessage(mailBox, &toMB, cont, strlen(cont) + 1);
-        sendMessage(UART0_OP_MB, mailBox, cont, strlen(cont) + 1);
-        sendMessage(TIMER_MB, mailBox,"60", 2);
-        recvMessage(mailBox, &timerMB , cont, strlen(cont) + 1);
-        sendMessage(UART0_OP_MB, mailBox, cont, strlen(cont) + 1);
+    strcpy(cont, " Input to Process 10 ");
+    sendMessage(UART0_IP_MB, mailBox, cont, size);
+    recvMessage(mailBox, &toMB, cont, &size);
+    sendMessage(UART0_OP_MB, mailBox, cont, size);
+    sendMessage(TIMER_MB, mailBox,"60", 2);
+    recvMessage(mailBox, &timerMB , cont, &size);
+    sendMessage(UART0_OP_MB, mailBox, cont, size);
 
     unbind(mailBox);
 

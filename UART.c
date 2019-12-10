@@ -41,7 +41,7 @@ void uart0_OutputServer(void)
     int size = MESSAGE_SYS_LIMIT;
     while(1)
     {
-        recvMessage(UART0_OP_MB, &toMB, cont, size);
+        recvMessage(UART0_OP_MB, &toMB, cont, &size);
         printString(cont, getOwnerPCB(toMB));
     }
 }
@@ -63,7 +63,7 @@ void uart0_InputServer(void)
     int size = MESSAGE_SYS_LIMIT;
     while (1)
     {
-        recvMessage(UART0_IP_MB, &toMB, cont, size);
+        recvMessage(UART0_IP_MB, &toMB, cont, &size);
         sendMessage(UART0_OP_MB, UART0_IP_MB, cont, size);
         cmd = NULL;
         size = NULL;
@@ -123,7 +123,7 @@ void uart1_OutputServer(void)
     int size = MESSAGE_SYS_LIMIT;
     while(1)
     {
-        recvMessage(UART1_OP_MB, &toMB, cont, size);
+        recvMessage(UART1_OP_MB, &toMB, cont, &size);
         printString(cont, getOwnerPCB(toMB));
     }
 }
@@ -145,7 +145,7 @@ void uart1_InputServer(void)
     int size = MESSAGE_SYS_LIMIT;
     while (1)
     {
-        recvMessage(UART1_IP_MB, &toMB, cont, size);
+        recvMessage(UART1_IP_MB, &toMB, cont, &size);
         sendMessage(UART1_OP_MB, UART1_IP_MB, cont, size);
         cmd = NULL;
         size = NULL;

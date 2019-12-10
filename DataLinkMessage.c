@@ -66,6 +66,8 @@ inline void forwardMessages(unsigned char start)
  * @brief   Handler of messages to data link layer
  *          from application layer. Prepares these messages
  *          to be forwarded through the physical layer.
+ * @param   [in] char * message: Pointer to message received from
+ *          application layer
  */
 void DataLinkfromAppHandler(char * message)
 {
@@ -112,6 +114,7 @@ void DataLinkfromAppHandler(char * message)
  * @brief   Handler of messages to data link layer
  *          from physical layer. Prepares these messages
  *          to be forwarded to the application layer, if applicable.
+ * @param   [in] char * message: Pointer to message received from physical layer
  */
 void DataLinkfromPhysHandler(char * message)
 {
@@ -161,7 +164,7 @@ void DataLinkfromPhysHandler(char * message)
             PhysLayerFromDLHandler(received.recvAddr, ctlSize);
 
             /* Send non-data link portion of received message to application layer */
-            AppMessageHandler(toForward.recvAddr);
+            AppfromDataLinkHandler(toForward.recvAddr);
         }
         break;
     /* Acknowledgment message; can discard acknowledged messages */
