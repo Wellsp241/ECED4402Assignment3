@@ -42,7 +42,7 @@ void uart0_OutputServer(void)
     int size = MESSAGE_SYS_LIMIT;
     while(1)
     {
-        recvMessage(UART0_OP_MB, &toMB, cont, &size);
+        recvMessage(UART0_OP_MB, &toMB, cont, size);
         printStringUART0(cont, getOwnerPCB(toMB));
     }
 }
@@ -64,7 +64,7 @@ void uart0_InputServer(void)
     int size = MESSAGE_SYS_LIMIT;
     while (1)
     {
-        recvMessage(UART0_IP_MB, &toMB, cont, &size);
+        recvMessage(UART0_IP_MB, &toMB, cont, size);
         sendMessage(UART0_OP_MB, UART0_IP_MB, cont, size);
         cmd = NULL;
         size = NULL;
@@ -125,8 +125,8 @@ void uart1_OutputServer(void)
     while(1)
     {
         size = MESSAGE_SYS_LIMIT;
-        recvMessage(UART1_OP_MB, &toMB, cont, &size);
-        printStringUART1(cont, size);
+        recvMessage(UART1_OP_MB, &toMB, cont, size);
+        printStringUART1(cont);
     }
 }
 
@@ -145,8 +145,10 @@ void uart1_InputServer(void)
     int toMB;
     char cont[MESSAGE_SYS_LIMIT];
     int size = MESSAGE_SYS_LIMIT;
+    char prev;
     while (1)
     {
+        recvMessage(UART1_IP_MB, &toMB, cont, size);
         cmd = NULL;
         size = NULL;
         inputEntered = FALSE;
@@ -154,18 +156,19 @@ void uart1_InputServer(void)
         {
             if (dequeue(&inputBuffer))
             {
-                switch (inputBuffer.data)
+                if(inputBuffer.data == ETX && prev!=DLE)
                 {
-                case ETX:
-
+                    addToBuffer_1(ETX);
+                    size++;
                     cmd = emptyBuffer_1();
                     inputEntered = TRUE;
                     sendMessage(UART1PHYSMB, UART1_IP_MB, cmd, size);
-
-                    break;
-                default:
+                }
+                else
+                {
                     if (addToBuffer_1(inputBuffer.data) == SUCCESS)
                     {
+                        prev = inputBuffer.data;
                         size++;
                     }
                 }
@@ -317,12 +320,11 @@ void systemPrintString(char* string)
  * @param   [in] unsigned char size: size in bytes of string
  *
  */
-void printStringUART1(char* string, unsigned char size)
+void printStringUART1(char* string)
 {
-    unsigned char i;
-    for(i = 0; i < size; i++)
+    while(*string)
     {
-        force_UART1_Output(string[i]);
+        force_UART1_Output(*(string++));
     }
 }
 
@@ -344,6 +346,7 @@ void UART0_IntHandler(void)
     {
         /* RECV done - clear interrupt and make char available to application */
         UART0_ICR_R |= UART_INT_RX;
+        uart0_ReceiveBuffer.type = UART0;
         uart0_ReceiveBuffer.data = UART0_DR_R;
         enqueue(uart0_ReceiveBuffer);
         if(get_UART0_InputState())
@@ -377,7 +380,8 @@ void UART1_IntHandler(void)
     {
         /* RECV done - clear interrupt and make char available to application */
         UART1_ICR_R |= UART_INT_RX;
-        uart1_ReceiveBuffer.data = UART0_DR_R;
+        uart1_ReceiveBuffer.type = UART1;
+        uart1_ReceiveBuffer.data = UART1_DR_R;
         enqueue(uart1_ReceiveBuffer);
         if (get_UART1_InputState())
         {

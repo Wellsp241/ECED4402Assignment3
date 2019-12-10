@@ -103,14 +103,13 @@ typedef struct CUP
 
     extern void UART_Init(void);
     extern void InterruptEnable(unsigned long);
-    extern void UART_IntEnable(unsigned long);
+    extern void UARTIntEnable(unsigned long);
     extern void UART0_IntHandler(void);
     extern void UART1_IntHandler(void);
     extern void forceOutputUART0(char);
     extern int getDataRegister(char *);
-    extern void printString(char*,PCB*);
+    extern void printStringUART0(char*,PCB*);
     extern void systemPrintString(char*);
-    extern void printWarning(int);
     extern void uart0_OutputServer(void);
     extern void uart0_InputServer(void);
     extern void uart1_OutputServer(void);
@@ -123,8 +122,8 @@ typedef struct CUP
 
     void systemPrintString(char*);
     void forceOutput(char);
-    void printString(char*,PCB*);
-    void printWarning(int);
+    void printStringUART0(char*,PCB*);
+    void printStringUART1(char* );
     void dataRecieved(void);
 
 #endif// GLOBAL_UART

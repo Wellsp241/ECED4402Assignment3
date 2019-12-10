@@ -42,11 +42,19 @@
 #define     TIMER_MB       2
 #define     UART1_OP_MB     3   //uart always mailbox 0
 #define     UART1_IP_MB     4
+#define     UART1PHYSMB     (6)
+#define     DATALINKPHYSMB  (7)
+#define     APPDATALINKMB   (8)
+#define     PHYSDATALINKMB  (9)
+#define     UART0APPMB    (10)/* Define mailbox used by application layer process */
+#define     DATALINKAPPMB (11)
 #define     CURSOR_STRING   9
 #define     FREE            1   //Timer states
 #define     TAKEN           0
 #define     EXAMPLE_MESSAGES_AMOUNT 3
 #define     EXAMPLE_MESSAGE_LENGTH 21
+#define     REQUEST     "REQUEST"
+#define     REQUEST_SIZE    8
 #define     LINE_MARK " |"
 #define     LINE_MARK_LENGTH 3
 #define     IDLE_SYMBOLS 10

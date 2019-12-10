@@ -97,7 +97,7 @@ void DataLinkfromAppHandler(void)
         while(1)
         {
             /* Receive message from dedicated mailbox. These messages follow the AppLayerMessage format */
-            recvMessage(APPDATALINKMB, &senderMB, received.recvAddr, &recvSize);
+            recvMessage(APPDATALINKMB, &senderMB, received.recvAddr, recvSize);
 
             /* Fill control field of message to forward with current data link state.
              * Note that the type field of our saved DLState is not ever changed from DATA.
@@ -134,6 +134,7 @@ void DataLinkfromPhysHandler(void)
 {
     int Mailbox;
     int senderMB;
+    int appMB;
     int recvSize = sizeof(DLMessage);
     int fwdSize = sizeof(AppMessage);
     int ctlSize = sizeof(DLState);
@@ -149,6 +150,7 @@ void DataLinkfromPhysHandler(void)
     received.recvAddr = Msg;
     union AppFromMB toForward;
     toForward.msgAddr = &(received.msgAddr->appMessage);
+    char request[REQUEST_SIZE];
 
     /* Bind to dedicated mailbox */
     Mailbox = bind(PHYSDATALINKMB);
@@ -160,7 +162,9 @@ void DataLinkfromPhysHandler(void)
         while(1)
         {
             /* Receive message from dedicated mailbox. These messages follow the DataLinkMessage format */
-            recvMessage(PHYSDATALINKMB, &senderMB, received.recvAddr, &recvSize);
+            recvMessage(PHYSDATALINKMB, &appMB, request, REQUEST_SIZE);
+            sendMessage(UART1PHYSMB,PHYSDATALINKMB , request, REQUEST_SIZE);
+            recvMessage(PHYSDATALINKMB, &senderMB, received.recvAddr, recvSize);
 
             /* Act on received message's type */
             switch(received.msgAddr->control.type)
@@ -241,5 +245,4 @@ void DataLinkTimeoutHandler(void)
     /* This return statement should never be reached;
      * but if it does, terminate the process
      */
-    return;
 }

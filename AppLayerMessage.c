@@ -57,6 +57,7 @@ void AppfromDataLinkHandler(void)
     union Mag_Dir replySpeed;
     replySpeed.rawByte = &(reply.msgAddr->arg2);
 
+
     /* Bind to dedicated mailbox */
     Mailbox = bind(DATALINKAPPMB);
 
@@ -67,7 +68,8 @@ void AppfromDataLinkHandler(void)
         while(1)
         {
             /* Receive message from dedicated mailbox */
-            recvMessage(DATALINKAPPMB, &senderMB, received.recvAddr, &msgSize);
+            sendMessage(PHYSDATALINKMB, DATALINKAPPMB, REQUEST, REQUEST_SIZE);
+            recvMessage(DATALINKAPPMB, &senderMB, received.recvAddr, msgSize);
 
             /* Act based on message's code */
             switch(received.msgAddr->code)
@@ -206,13 +208,13 @@ void AppfromUART0Handler(void)
             strcpy(received, "Input Start Point: ");
             sendMessage(UART0_IP_MB, UART0APPMB, received, 19);
             recvSize = MESSAGE_SYS_LIMIT;
-            recvMessage(UART0APPMB, &senderMB, received, &recvSize);
+            recvMessage(UART0APPMB, &senderMB, received, recvSize);
             start = *received - '0';
 
             strcpy(received, "Input End Point: ");
             sendMessage(UART0_IP_MB, UART0APPMB, received, 17);
             recvSize = MESSAGE_SYS_LIMIT;
-            recvMessage(UART0APPMB, &senderMB, received, &recvSize);
+            recvMessage(UART0APPMB, &senderMB, received, recvSize);
             end = *received - '0';
             TState.destination = end;
             path = getPath(start, end);

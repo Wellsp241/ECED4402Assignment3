@@ -21,9 +21,9 @@
 
 
 
-#define HIGH_PRIORITY 4
+#define HIGH_PRIORITY 5
 #define LOW_PRIORITY 0
-#define PRIORITY_LEVELS 5
+#define PRIORITY_LEVELS 6
 #define RUNNING waitingToRun[currentPriority]
 #define STACK_SIZE 1024*sizeof(unsigned long)
 #define INIT_SP (1024-16)*sizeof(unsigned long)
@@ -206,7 +206,21 @@ void pendSV(void)
     {
         save_registers();
         callerPCB = RUNNING;
-        addPCB(getOwnerPCB(UART0_IP_MB),3);
+        addPCB(getOwnerPCB(UART0_IP_MB),4);
+        if(RUNNING != callerPCB)
+        {
+            callerPCB -> sp = get_PSP();
+            set_PSP(RUNNING -> sp);
+        }
+        restore_registers();
+    }
+    break;
+    case INPUT_1:
+    if (get_UART1_InputState())
+    {
+        save_registers();
+        callerPCB = RUNNING;
+        addPCB(getOwnerPCB(UART1_IP_MB),4);
         if(RUNNING != callerPCB)
         {
             callerPCB -> sp = get_PSP();
@@ -390,7 +404,7 @@ else /* Subsequent SVCs */
     break;
     case RECEIVEMSG:
         recvMsg = (ReceiveMessage *)kcaptr ->arg1;
-        kcaptr->rtnvalue = *((int *)recvMsg->maxSize);
+        kcaptr->rtnvalue = recvMsg->maxSize;
         if(kernelReceive(recvMsg->bindedMB,recvMsg->returnMB,
                       recvMsg->contents, &(kcaptr->rtnvalue)) < 0)
         {

@@ -207,7 +207,7 @@ int sendMessage(int destinationMB, int fromMB, void * contents, int size)
  * @return  int: -3->receive failure; 1->success
  *
  */
-int recvMessage(unsigned int bindedMB, int * returnMB, void * contents, int * maxSize)
+int recvMessage(unsigned int bindedMB, int * returnMB, void * contents, int maxSize)
 {
     int result;
 

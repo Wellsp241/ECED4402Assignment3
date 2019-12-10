@@ -25,12 +25,18 @@ typedef struct holdingBuffer_
 #ifndef GLOBAL_HOLDINGBUFFER
 #define GLOBAL_HOLDINGBUFFER
 
-        extern int addToBuffer(char);
-        extern int removeFromBuffer(void);
-        extern char* emptyBuffer(void);
+        extern int addToBuffer_0(char);
+        extern int removeFromBuffer_0(void);
+        extern char* emptyBuffer_0(void);
+        extern int addToBuffer_1(char);
+        extern int removeFromBuffer_1(void);
+        extern char* emptyBuffer_1(void);
 #else
 
-        int addToBuffer(char);
-        int removeFromBuffer(void);
-        char* emptyBuffer(void);
+        int addToBuffer_0(char);
+        int removeFromBuffer_0(void);
+        char* emptyBuffer_0(void);
+        int addToBuffer_1(char);
+        int removeFromBuffer_1(void);
+        char* emptyBuffer_1(void);
 #endif// GLOBAL_HOLDINGBUFFER

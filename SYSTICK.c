@@ -11,10 +11,12 @@
  */
 #define GLOBAL_SYSTICK
 #include "SYSTICK.h"
+#include "KernelCall.h"
 #include "Utilities.h"
 #include "SVC.h"
 #include "InterruptType.h"
 #include "Queue.h"
+
 
 static interruptType systickEvent = {SYSTICK,NUL};
 static int timerBlocked = FALSE;

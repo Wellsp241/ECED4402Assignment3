@@ -31,7 +31,6 @@ void idleProcess(void)
     int myID = getid();
     PCB* runningPCB = getRunningPCB();
     int k=0;
-    int wait;
     int cursorPos = 0;
     while(1)
     {
@@ -40,7 +39,6 @@ void idleProcess(void)
     sendMessage(UART0_OP_MB, mailBox, "*", CHAR_SEND);
     while(k<500000)
     {
-        wait =0;
         k++;
     }
     k=0;
@@ -50,49 +48,6 @@ void idleProcess(void)
     runningPCB->xAxisCursorPosition=cursorPos;
     sendMessage(UART0_OP_MB, mailBox, CLEAR_LINE, strlen(CLEAR_LINE) + 1);
     }
-}
-
-void defaultProcess(void)
-{
-    volatile int wait = 0;
-    int mailBox = bind(ANY);
-    int myID = getid();
-    char idString[POSITION_DIGITS];
-    printLineMarker(myID,mailBox);
-
-    int i = 0;
-    while (i < EXAMPLE_MESSAGES_AMOUNT)
-    {
-        sendMessage(UART0_OP_MB, mailBox, idString, POSITION_DIGITS + 1);
-        i++;
-    }
-
-    unbind(mailBox);
-}
-
-/*
- * @brief default process, except with a nice to
- *        show self premption
- * */
-void defaultProcessNice(void)
-{
-    volatile int wait = 0;
-
-    int mailBox = bind(ANY);
-    int myID = getid();
-    char idString[POSITION_DIGITS];
-    printLineMarker(myID,mailBox);
-
-    int i = 0;
-    while (i < EXAMPLE_MESSAGES_AMOUNT)
-    {
-
-        if(i==1){nice(1);}
-        sendMessage(UART0_OP_MB, mailBox, idString, POSITION_DIGITS + 1);
-        i++;
-    }
-
-    unbind(mailBox);
 }
 
 /*
@@ -113,10 +68,10 @@ void Priority2Process10(void)
 
     strcpy(cont, " Input to Process 10 ");
     sendMessage(UART0_IP_MB, mailBox, cont, size);
-    recvMessage(mailBox, &toMB, cont, &size);
+    recvMessage(mailBox, &toMB, cont, size);
     sendMessage(UART0_OP_MB, mailBox, cont, size);
     sendMessage(TIMER_MB, mailBox,"60", 2);
-    recvMessage(mailBox, &timerMB , cont, &size);
+    recvMessage(mailBox, &timerMB , cont, size);
     sendMessage(UART0_OP_MB, mailBox, cont, size);
 
     unbind(mailBox);
@@ -139,21 +94,19 @@ int main(void)
 
     /* Register idle process first */
     registerResult |= registerProcess(idleProcess, 0, 0);
-    registerResult |= registerProcess(uart0_OutputServer, 1, 4);
+    registerResult |= registerProcess(uart0_OutputServer, 1, 5);
     registerResult |= registerProcess(uart0_InputServer, 2, 4);
-    registerResult |= registerProcess(uart1_OutputServer, 3, 4);
+    registerResult |= registerProcess(uart1_OutputServer, 3, 5);
     registerResult |= registerProcess(uart1_InputServer, 4, 4);
-    registerResult |= registerProcess(AppfromDataLinkHandler, 5, 2);
-    registerResult |= registerProcess(AppfromUART0Handler, 6, 3);
+    registerResult |= registerProcess(AppfromUART0Handler, 6, 1);
+    registerResult |= registerProcess(AppfromDataLinkHandler, 5, 1);
     registerResult |= registerProcess(DataLinkfromAppHandler, 7, 2);
     registerResult |= registerProcess(DataLinkfromPhysHandler, 8, 2);
-    registerResult |= registerProcess(PhysLayerFromDLHandler, 9, 2);
+    registerResult |= registerProcess(PhysLayerFromDLHandler, 9, 3);
     registerResult |= registerProcess(PhysLayerFromUART1Handler, 10, 3);
 
 
     /* Register other test processes */
-//    registerResult |= registerProcess(Priority2Process10, 10, 2);
-
 
     if (!registerResult)
     {

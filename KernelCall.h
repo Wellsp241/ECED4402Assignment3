@@ -59,7 +59,7 @@ extern int getid(void);
 extern int nice(unsigned int);
 extern void terminate(void);
 extern int sendMessage(int, int, void *, int);
-extern int recvMessage(int, int*, void *, int *);
+extern int recvMessage(int, int*, void *, int);
 extern void block(void);
 
 #endif

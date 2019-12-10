@@ -72,7 +72,7 @@ void PhysLayerFromDLHandler(void)
         {
             /* Receive message from data link layer. These messages will follow the DataLinkMessage format */
             recvSize = maxrecvSize;
-            recvMessage(DATALINKPHYSMB, &senderMB, received, &recvSize);
+            recvMessage(DATALINKPHYSMB, &senderMB, received, recvSize);
 
             /* Calculate checksum of message to forward */
             tempChecksum = getChecksum(received, recvSize);
@@ -124,6 +124,7 @@ void PhysLayerFromUART1Handler(void)
 {
     int UART1toPhysMB;
     int senderMB;
+    int datalinkMB;
     int maxrecvSize = (sizeof(DLMessage) * 2) + NUMPHYSICALBYTES;
     int recvSize;
     int fwdSize;
@@ -138,6 +139,7 @@ void PhysLayerFromUART1Handler(void)
     char received[maxrecvSize];
     char * toForward = &received[1];
     char * checksum;
+    char request[REQUEST_SIZE];
 
     /* Bind to dedicated mailbox */
     UART1toPhysMB = bind(UART1PHYSMB);
@@ -152,7 +154,9 @@ void PhysLayerFromUART1Handler(void)
         {
             /* Receive message from mailbox. These messages follow the PhysLayerMessage format */
             recvSize = maxrecvSize;
-            recvMessage(UART1PHYSMB, &senderMB, received, &recvSize);
+            recvMessage(UART1PHYSMB, &datalinkMB, request, REQUEST_SIZE);
+            sendMessage(UART1_IP_MB, UART1PHYSMB, request, REQUEST_SIZE);
+            recvMessage(UART1PHYSMB, &senderMB, received, recvSize);
             fwdSize = recvSize - NUMPHYSICALBYTES;
 
             /* Remove extra DLEs from message to forward */

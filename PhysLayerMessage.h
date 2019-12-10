@@ -13,9 +13,6 @@
 /* Define number of bytes added to message by physical layer */
 #define NUMPHYSICALBYTES    (3)
 
-/* Define physical layer mailboxes */
-#define UART1PHYSMB     (6)
-#define DATALINKPHYSMB  (7)
 
 /* Define start, end and data link escape bytes */
 #define STX         (0x02)

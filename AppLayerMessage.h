@@ -9,9 +9,7 @@
  */
 #pragma once
 
-/* Define mailbox used by application layer process */
-#define UART0APPMB    (10)
-#define DATALINKAPPMB (11)
+
 
 /* Define all indicator for messages sent from application layer */
 #define ALL           (0xFF)
