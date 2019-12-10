@@ -10,6 +10,9 @@
 #pragma once
 #include "AppLayerMessage.h"
 
+/* Define index of train being controlled */
+#define TRAIN           (0)
+
 /* Definition of number of switches on train set alongside
  * indicator of no switches
  */
@@ -71,4 +74,4 @@ extern struct TrainState TState;
 extern unsigned char Switch_States;
 
 /* Function used to get path between two hall sensors */
-void Go(unsigned char start, unsigned char finish);
+struct RoutingTableEntry * getPath(unsigned char start, unsigned char finish);

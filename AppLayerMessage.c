@@ -10,6 +10,7 @@
 #include "KernelCall.h"
 #include "AppLayerMessage.h"
 #include "DataLinkMessage.h"
+#include "PhysLayerMessage.h"
 #include "TrainRouting.h"
 #include "Utilities.h"
 
@@ -159,8 +160,18 @@ void AppfromDataLinkHandler(char * message)
 void AppfromUART0Handler(void)
 {
     int Mailbox;
-    /* Reserve space for received messages */
+    int senderMB;
+    int recvSize;
+    int fwdSize;
+    struct RoutingTableEntry * path;
+    /* Reserve space for received/sent messages */
     char received[MESSAGE_SYS_LIMIT];
+    char toForward[(sizeof(DLMessage) * 2) + NUM_PHYSICAL_BYTES];
+    char * DLStart = &toForward[1];
+    union AppFromMB command;
+    command.recvAddr = &toForward[3];
+    union Mag_Dir commandSpeed;
+    commandSpeed.rawByte = &(command.msgAddr->arg2);
 
     /* Bind to dedicated mailbox */
     Mailbox = bind(UART0APPMB);
@@ -172,7 +183,62 @@ void AppfromUART0Handler(void)
         while(1)
         {
             /* Receive message from dedicated mailbox */
-            recvMessage()
+            //recvSize = MESSAGE_SYS_LIMIT;
+            //recvMessage(Mailbox, &senderMB, received, &recvSize);
+
+            /* Get path from 1 to 10 */
+            path = getPath(1, 10);
+
+            /* Check whether train has to be stopped */
+            if(path->stop == PATH_STOP)
+            {
+                command.msgAddr->code = MAG_DIR_SET;
+                command.msgAddr->arg1 = TRAIN;
+                *(commandSpeed.Speed) = STOP;
+
+                //TODO: send this to UART1
+                DataLinkfromAppHandler(&toForward[1]);
+            }
+            else
+            {
+                /* Check whether train's speed/direction must be changed */
+                if((path->dir != TState.speed.direction) || (TState.stop == PATH_STOP))
+                {
+                    command.msgAddr->code = MAG_DIR_SET;
+                    command.msgAddr->arg1 = TRAIN;
+                    commandSpeed.Speed->direction = path->dir;
+                    commandSpeed.Speed->magnitude = TState.speed.magnitude;
+
+                    //TODO: Send command through UART1
+
+                    /* Adjust train state */
+                    TState.speed.direction = path->dir;
+                    TState.stop = PATH_GO;
+                }
+
+                /* Check whether any switches need to be thrown */
+                if((Switch_States & (1 << path->switchnum) != 0) != path->switchstate)
+                {
+                    command.msgAddr->code = SWITCH_THROW;
+                    command.msgAddr->arg1 = path->switchnum;
+                    command.msgAddr->arg2 = path->switchstate;
+
+                    //TODO: Send command through UART1
+
+                    /* Adjust switch state */
+                    if(path->switchstate == SWITCH_DIVERGED)
+                    {
+                        Switch_States &= ~(1 << path->switchnum);
+                    }
+                    else
+                    {
+                        Switch_States |= (1 << path->switchnum);
+                    }
+                }
+            }
+
+            /* Send final packet to UART1 for output */
+            sendMessage(UART1_OP_MB, Mailbox, toForward, fwdSize);
         }
     }
 

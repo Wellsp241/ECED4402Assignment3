@@ -30,7 +30,7 @@ unsigned char Switch_States = DEFAULT_SWITCH;
  * @param   [in] unsigned char start: Index of starting hall sensor
  * @param   [in] unsigned char finish: Index of ending hall sensor
  */
-void Go(unsigned char start, unsigned char finish)
+struct RoutingTableEntry * getPath(unsigned char start, unsigned char finish)
 {
     /* Routing table used to instruct a train how to go from one location to another */
     static struct RoutingTableEntry RoutingTable[NUM_SENSORS][NUM_SENSORS] =
@@ -62,70 +62,7 @@ void Go(unsigned char start, unsigned char finish)
     /* 24*/{{DIR_CW, 2, SW_DIVERGED, PATH_GO},         {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, NO_SWITCH, NO_SWITCH, PATH_GO},  {DIR_CW, NO_SWITCH, NO_SWITCH, PATH_STOP}}
     };
 
-    /* Reserve space for application layer message */
-    char Msg[sizeof(AppMessage)];
-    union AppFromMB reply;
-    reply.recvAddr = Msg;
-    union Mag_Dir replySpeed;
-    replySpeed.rawByte = &(reply.msgAddr->arg2);
-
     /* Get path from start to finish */
-    struct RoutingTableEntry * path = &RoutingTable[start][finish];
-
-    /* Check whether train must be stopped */
-    if(path->stop == PATH_STOP)
-    {
-        /* Locomotive is at its destination so it must be stopped */
-        reply.msgAddr->code = MAG_DIR_SET;
-        reply.msgAddr->arg1 = 0;
-        *(replySpeed.rawByte) = STOP;
-
-        DataLinkfromAppHandler(reply.recvAddr);
-
-        /* Update train's state */
-        TState.stop = PATH_STOP;
-    }
-    else
-    {
-        /* Determine whether any messages need to be sent to adjust the train's course.
-         * Start by checking for a needed magnitude/direction set message.
-         */
-        if((path->dir != TState.speed.direction) || (TState.stop == PATH_STOP))
-        {
-            /* Direction needs to be changed so send speed change request */
-            reply.msgAddr->code = MAG_DIR_SET;
-            reply.msgAddr->arg1 = 0;
-            replySpeed.Speed->direction = path->dir;
-            replySpeed.Speed->magnitude = TState.speed.magnitude;
-
-            DataLinkfromAppHandler(reply.recvAddr);
-
-            /* Update train's state */
-            TState.speed.direction = path->dir;
-            TState.stop = PATH_GO;
-        }
-
-        /* Check whether a switch-throw request must be sent */
-        if(((Switch_States & (1 << path->switchnum)) == 0) != path->switchstate)
-        {
-            /* Build and send switch-throw request message */
-            reply.msgAddr->code = SWITCH_THROW;
-            reply.msgAddr->arg1 = path->switchnum;
-            reply.msgAddr->arg2 = path->switchstate;
-            DataLinkfromAppHandler(reply.recvAddr);
-
-            /* Update switch's state */
-            if(path->switchstate == SW_DIVERGED)
-            {
-                Switch_States &= ~(1 << path->switchnum);
-            }
-            else
-            {
-                Switch_States |= 1 << path->switchnum;
-            }
-        }
-    }
-
-    return;
+    return &RoutingTable[start][finish];
 }
 
