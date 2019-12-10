@@ -35,13 +35,14 @@
 #define DEFAULT_SPEED       (5)
 #define DEFAULT_DIRECTION   (DIR_CW)
 #define DEFAULT_DESTINATION (1)
+#define DEFAULT_STOP        (PATH_STOP)
 
 
 /* Structure of routing table entries.
- * dir: 0 -> CW, 1 -> CCW
- * switchnum: index of switch to be thrown (0 to NUM_SWITCHES)
+ * dir:         0 -> CW, 1 -> CCW
+ * switchnum:   index of switch to be thrown (0 to NUM_SWITCHES)
  * switchstate: 0 -> diverged, 1 -> straight
- * stop: 0 -> train does not stop, 1 -> train stops
+ * stop:        0 -> train does not stop, 1 -> train stops
  */
 struct RoutingTableEntry
 {
@@ -52,15 +53,22 @@ struct RoutingTableEntry
 };
 
 
-/* Structure of train state */
+/* Structure of train state.
+ * speed:       Information about speed/direction currently set on
+ *              train
+ * destination: current destination sensor of train
+ * stop:        0 -> train is not stopped, 1 -> train is stopped
+ */
 struct TrainState
 {
     struct AppLayerSpeed speed;
     unsigned char destination;
+    unsigned char stop;
 };
 
 
 extern struct TrainState TState;
+extern unsigned char Switch_States;
 
 /* Function used to get path between two hall sensors */
-inline struct RoutingTableEntry * getPath(unsigned char start, unsigned char finish);
+struct RoutingTableEntry * getPath(unsigned char start, unsigned char finish);

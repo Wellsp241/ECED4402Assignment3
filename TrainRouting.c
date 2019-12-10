@@ -8,29 +8,32 @@
  * @date
  */
 #include "TrainRouting.h"
+#include "DataLinkMessage.h"
 
 /* Define default switch states */
 #define DEFAULT_SWITCH  (0xFF)
 
 /* Container of train state(s) */
 //TODO: Make non-global
-struct TrainState TState = {{DEFAULT_SPEED, 0, DEFAULT_DIRECTION}, DEFAULT_DESTINATION};
+struct TrainState TState = {{DEFAULT_SPEED, 0, DEFAULT_DIRECTION}, DEFAULT_DESTINATION, DEFAULT_STOP};
 
-/* Switch state register */
+/* Switch state register.
+ * Each bit corresponds to a different switch (e.g. Bit 2 represents switch 2).
+ */
+//TODO: Make non-global
 unsigned char Switch_States = DEFAULT_SWITCH;
 
 
 /*
- * @brief   Function used to obtain instructions on how to go from one
+ * @brief   Function used to send instructions on how to go from one
  *          hall sensor the the next on the train track
  * @param   [in] unsigned char start: Index of starting hall sensor
  * @param   [in] unsigned char finish: Index of ending hall sensor
- * @return  RoutingTableEntry *: Address of instruction set for desired path
  */
-inline struct RoutingTableEntry * getPath(unsigned char start, unsigned char finish)
+void Go(unsigned char start, unsigned char finish)
 {
     /* Routing table used to instruct a train how to go from one location to another */
-    static const struct RoutingTableEntry RoutingTable[NUM_SENSORS][NUM_SENSORS] =
+    static struct RoutingTableEntry RoutingTable[NUM_SENSORS][NUM_SENSORS] =
     {
     /*From      TO      1                                          2                                         3                                          4                                         5                                         6                                         7                                         8                                        9                                        10                                        11                                        12                                        13                                        14                                        15                                        16                                         17                                        18                                       19                                        20                                         21                                        22                                       23                                        24               */
     /* 1 */{{DIR_CW, NO_SWITCH, NO_SWITCH, PATH_STOP}, {DIR_CCW, 6, SW_STRAIGHT, PATH_GO},       {DIR_CCW, 6, SW_STRAIGHT, PATH_GO},       {DIR_CCW, 6, SW_STRAIGHT, PATH_GO},       {DIR_CCW, 6, SW_STRAIGHT, PATH_GO},       {DIR_CCW, 6, SW_STRAIGHT, PATH_GO},       {DIR_CCW, 6, SW_STRAIGHT, PATH_GO},       {DIR_CCW, 6, SW_STRAIGHT, PATH_GO},       {DIR_CW, 1, SW_STRAIGHT, PATH_GO},        {DIR_CW, 1, SW_STRAIGHT, PATH_GO},        {DIR_CW, 1, SW_STRAIGHT, PATH_GO},        {DIR_CW, 1, SW_STRAIGHT, PATH_GO},        {DIR_CW, 1, SW_STRAIGHT, PATH_GO},        {DIR_CW, NO_SWITCH, NO_SWITCH, PATH_GO},  {DIR_CW, NO_SWITCH, NO_SWITCH, PATH_GO},  {DIR_CW, NO_SWITCH, NO_SWITCH, PATH_GO},  {DIR_CCW, 6, SW_DIVERGED, PATH_GO},       {DIR_CCW, 6, SW_DIVERGED, PATH_GO},       {DIR_CW, 1, SW_DIVERGED, PATH_GO},        {DIR_CW, 1, SW_DIVERGED, PATH_GO},        {DIR_CCW, 6, SW_STRAIGHT, PATH_GO},       {DIR_CCW, 6, SW_STRAIGHT, PATH_GO},       {DIR_CW, 1, SW_STRAIGHT, PATH_GO},        {DIR_CW, 1, SW_STRAIGHT, PATH_GO}},
@@ -59,5 +62,70 @@ inline struct RoutingTableEntry * getPath(unsigned char start, unsigned char fin
     /* 24*/{{DIR_CW, 2, SW_DIVERGED, PATH_GO},         {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, 2, SW_DIVERGED, PATH_GO},        {DIR_CW, NO_SWITCH, NO_SWITCH, PATH_GO},  {DIR_CW, NO_SWITCH, NO_SWITCH, PATH_STOP}}
     };
 
-    return &RoutingTable[start][finish];
+    /* Reserve space for application layer message */
+    char Msg[sizeof(AppMessage)];
+    union AppFromMB reply;
+    reply.recvAddr = Msg;
+    union Mag_Dir replySpeed;
+    replySpeed.rawByte = &(reply.msgAddr->arg2);
+
+    /* Get path from start to finish */
+    struct RoutingTableEntry * path = &RoutingTable[start][finish];
+
+    /* Check whether train must be stopped */
+    if(path->stop == PATH_STOP)
+    {
+        /* Locomotive is at its destination so it must be stopped */
+        reply.msgAddr->code = MAG_DIR_SET;
+        reply.msgAddr->arg1 = 0;
+        *(replySpeed.rawByte) = STOP;
+
+        DataLinkfromAppHandler(reply.recvAddr);
+
+        /* Update train's state */
+        TState.stop = PATH_STOP;
+    }
+    else
+    {
+        /* Determine whether any messages need to be sent to adjust the train's course.
+         * Start by checking for a needed magnitude/direction set message.
+         */
+        if((path->dir != TState.speed.direction) || (TState.stop == PATH_STOP))
+        {
+            /* Direction needs to be changed so send speed change request */
+            reply.msgAddr->code = MAG_DIR_SET;
+            reply.msgAddr->arg1 = 0;
+            replySpeed.Speed->direction = path->dir;
+            replySpeed.Speed->magnitude = TState.speed.magnitude;
+
+            DataLinkfromAppHandler(reply.recvAddr);
+
+            /* Update train's state */
+            TState.speed.direction = path->dir;
+            TState.stop = PATH_GO;
+        }
+
+        /* Check whether a switch-throw request must be sent */
+        if(((Switch_States & (1 << path->switchnum)) == 0) != path->switchstate)
+        {
+            /* Build and send switch-throw request message */
+            reply.msgAddr->code = SWITCH_THROW;
+            reply.msgAddr->arg1 = path->switchnum;
+            reply.msgAddr->arg2 = path->switchstate;
+            DataLinkfromAppHandler(reply.recvAddr);
+
+            /* Update switch's state */
+            if(path->switchstate == SW_DIVERGED)
+            {
+                Switch_States &= ~(1 << path->switchnum);
+            }
+            else
+            {
+                Switch_States |= 1 << path->switchnum;
+            }
+        }
+    }
+
+    return;
 }
+

@@ -5,7 +5,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    28-Nov-2019 (created)
- * @date    8-Dec-2019 (edited)
+ * @date    9-Dec-2019 (edited)
  */
 #pragma once
 #include "AppLayerMessage.h"
@@ -44,3 +44,7 @@ union DLFromMB
     char * recvAddr;
     DLMessage * msgAddr;
 };
+
+
+void DataLinkfromAppHandler(char * message);
+void DataLinkfromPhysHandler(char * message);
