@@ -215,20 +215,20 @@ void pendSV(void)
         restore_registers();
     }
     break;
-//    case TIMER:
-//    if(getTimerProcessState()&&getTimerState())
-//    {
-//        save_registers();
-//        callerPCB = RUNNING;
-//        addPCB(getOwnerPCB(TIMER_MB),4);
-//        if(RUNNING != callerPCB)
-//        {
-//            callerPCB -> sp = get_PSP();
-//            set_PSP(RUNNING -> sp);
-//        }
-//        restore_registers();
-//    }
-//    break;
+    case TIMER:
+    if(getTimerProcessState()&&getTimerState())
+    {
+        save_registers();
+        callerPCB = RUNNING;
+        addPCB(getOwnerPCB(TIMER_MB),4);
+        if(RUNNING != callerPCB)
+        {
+            callerPCB -> sp = get_PSP();
+            set_PSP(RUNNING -> sp);
+        }
+        restore_registers();
+    }
+    break;
    case CONTEXT:
 
         disable();

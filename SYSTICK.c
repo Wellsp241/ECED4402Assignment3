@@ -11,9 +11,15 @@
  */
 #define GLOBAL_SYSTICK
 #include "SYSTICK.h"
+#include "Utilities.h"
+#include "SVC.h"
+#include "InterruptType.h"
+#include "Queue.h"
 
-/* Macro used to request a pendSV call */
-#define CALLPENDSV (*((volatile unsigned long *)0xE000ED04) |= 0x10000000UL)
+static interruptType systickEvent = {SYSTICK,NUL};
+static int timerBlocked = FALSE;
+static int timerSet = FALSE;
+
 
 /*
  * @brief   Set the clock source to internal and enable the counter to interrupt
@@ -60,12 +66,76 @@ void SysTickIntDisable(void)
 ST_CTRL_R &= ~(ST_CTRL_INTEN);
 }
 
+int getTimerState(void)
+{
+    return timerSet;
+}
+int getTimerProcessState(void)
+{
+    return timerBlocked;
+}
+/*
+ * @brief   set timer to delay with time variable that
+ *          is in hundredths of a second
+ *
+ * @param   [in] int time: time in hundredths of a second
+ *          to set timer
+ *
+ * @return int: SUCCESS-> Timer successfully set
+ *              TAKEN-> Timer is in use
+ */
+void timeServer(void)
+{
+    bind(TIMER_MB);
+
+    interruptType timerTrigger = {SYSTICK,NUL};
+    int toMB;
+    char cont[MESSAGE_SYS_LIMIT];
+    int size = MESSAGE_SYS_LIMIT;
+    volatile int time;
+    while (1)
+    {
+        recvMessage(TIMER_MB, &toMB, cont, size);
+        myAtoi(&time, cont);
+        timerSet = TRUE;
+        while(timerSet==TRUE)
+        {
+        if (dequeue(&timerTrigger))
+        {
+            if(time>0)
+            {
+                time--;
+            }
+            else
+            {
+                timerSet=FALSE;
+            }
+        }
+        else
+        {
+             timerBlocked = TRUE;
+             block();
+             timerBlocked = FALSE;
+        }
+        }
+        sendMessage(toMB, TIMER_MB," DONE ", 6);
+    }
+}
 /*
  * @brief ISR of SYSTICK requesting a context switch
+ *        if timer is set; decrement waitTime
  *
  */
 void SYSTICKHandler(void)
 {
-    /* Request a pendSV call */
+    setPendType(CONTEXT);
     CALLPENDSV;
+
+    if(getTimerState())
+    {
+        setPendType(TIMER);
+        systickEvent.type=SYSTICK;
+        enqueue(systickEvent);
+    }
+
 }

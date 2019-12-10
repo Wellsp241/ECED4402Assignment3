@@ -76,21 +76,21 @@ void uart0_InputServer(void)
                 {
                 case ENTER:
 
-                    cmd = emptyBuffer();
+                    cmd = emptyBuffer_0();
                     inputEntered = TRUE;
                     sendMessage(toMB, UART0_IP_MB, cmd, size);
 
                     break;
                 case BS:
 
-                    if (removeFromBuffer() == SUCCESS)
+                    if (removeFromBuffer_0() == SUCCESS)
                     {
                         sendMessage(UART0_OP_MB, UART0_IP_MB, &inputBuffer.data, CHAR_SEND);
                     }
 
                     break;
                 default:
-                    if (addToBuffer(toupper(inputBuffer.data)) == SUCCESS)
+                    if (addToBuffer_0(toupper(inputBuffer.data)) == SUCCESS)
                     {
                         sendMessage(UART0_OP_MB, UART0_IP_MB, &inputBuffer.data, CHAR_SEND);
                         size++;
@@ -158,21 +158,21 @@ void uart1_InputServer(void)
                 {
                 case ENTER:
 
-                    cmd = emptyBuffer();
+                    cmd = emptyBuffer_1();
                     inputEntered = TRUE;
                     sendMessage(toMB, UART1_IP_MB, cmd, size);
 
                     break;
                 case BS:
 
-                    if (removeFromBuffer() == SUCCESS)
+                    if (removeFromBuffer_1() == SUCCESS)
                     {
                         sendMessage(UART1_OP_MB, UART1_IP_MB, &inputBuffer.data, CHAR_SEND);
                     }
 
                     break;
                 default:
-                    if (addToBuffer(toupper(inputBuffer.data)) == SUCCESS)
+                    if (addToBuffer_1(toupper(inputBuffer.data)) == SUCCESS)
                     {
                         sendMessage(UART1_OP_MB, UART1_IP_MB, &inputBuffer.data, CHAR_SEND);
                         size++;

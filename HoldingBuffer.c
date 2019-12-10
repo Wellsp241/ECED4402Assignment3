@@ -13,7 +13,8 @@
 #define GLOBAL_HOLDINGBUFFER
 #include "HoldingBuffer.h"
 /* Define an empty holding buffer*/
-static holdingBuffer holdingBuf={{EMPTY},EMPTY};
+static holdingBuffer    holdingBuffer_0 = {{EMPTY},EMPTY};
+static holdingBuffer    holdingBuffer_1 = {{EMPTY},EMPTY};
 
 /*
  * @brief   Adds a character to the holding register
@@ -22,11 +23,11 @@ static holdingBuffer holdingBuf={{EMPTY},EMPTY};
  *          if returns 1 the character was successfully added
  *          if returns 0 the holding buffer is full
  */
-int addToBuffer(char c)
+int addToBuffer_0(char c)
 {
-    if(holdingBuf.writePtr<MAX_BUFFER)
+    if(holdingBuffer_0.writePtr<MAX_BUFFER)
     {
-        holdingBuf.buffer[holdingBuf.writePtr++] = c;
+        holdingBuffer_0.buffer[holdingBuffer_0.writePtr++] = c;
         return SUCCESS;
     }
     return FULL;
@@ -38,11 +39,11 @@ int addToBuffer(char c)
  *          if returns 1 the character was successfully removed
  *          if returns 0 the holding buffer is empty
  */
-int removeFromBuffer(void)
+int removeFromBuffer_0(void)
 {
-    if(holdingBuf.writePtr>EMPTY)
+    if(holdingBuffer_0.writePtr>EMPTY)
     {
-            holdingBuf.writePtr--;
+            holdingBuffer_0.writePtr--;
             return SUCCESS;
     }
     return EMPTY;
@@ -55,9 +56,56 @@ int removeFromBuffer(void)
  * @return  char*: pointer to the first character in the
  *          holding register
  */
-char* emptyBuffer(void)
+char* emptyBuffer_0(void)
 {
-   addToBuffer(NUL);
-   holdingBuf.writePtr=EMPTY;
-   return holdingBuf.buffer;
+   addToBuffer_0(NUL);
+   holdingBuffer_0.writePtr=EMPTY;
+   return holdingBuffer_0.buffer;
+}
+
+/*
+ * @brief   Adds a character to the holding register
+ * @param   char c: character to be added to holding register
+ * @return  @return  int return used as a boolean value,
+ *          if returns 1 the character was successfully added
+ *          if returns 0 the holding buffer is full
+ */
+int addToBuffer_1(char c)
+{
+    if(holdingBuffer_1.writePtr<MAX_BUFFER)
+    {
+        holdingBuffer_1.buffer[holdingBuffer_1.writePtr++] = c;
+        return SUCCESS;
+    }
+    return FULL;
+}
+
+/*
+ * @brief   Removes a character from the holding register
+ * @return  int return used as a boolean value,
+ *          if returns 1 the character was successfully removed
+ *          if returns 0 the holding buffer is empty
+ */
+int removeFromBuffer_1(void)
+{
+    if(holdingBuffer_1.writePtr>EMPTY)
+    {
+            holdingBuffer_1.writePtr--;
+            return SUCCESS;
+    }
+    return EMPTY;
+}
+
+/*
+ * @brief   Adds a NUL character to the end of
+ *          the holding register, returns a pointer
+ *          to the start
+ * @return  char*: pointer to the first character in the
+ *          holding register
+ */
+char* emptyBuffer_1(void)
+{
+   addToBuffer_1(NUL);
+   holdingBuffer_1.writePtr=EMPTY;
+   return holdingBuffer_1.buffer;
 }

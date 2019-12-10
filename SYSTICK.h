@@ -35,5 +35,8 @@
     extern void SysTickIntEnable(void);
     extern void SysTickIntDisable(void);
     extern void SysTickHandler(void);
+    extern int getTimerState(void);
+    extern int getTimerProcessState(void);
+    extern void timeServer(void);
 
 #endif //GLOBAL_SYSTICK
