@@ -157,21 +157,23 @@ void PhysLayerFromUART1Handler(void)
             recvMessage(UART1PHYSMB, &datalinkMB, request, REQUEST_SIZE);
             sendMessage(UART1_IP_MB, UART1PHYSMB, request, REQUEST_SIZE);
             recvMessage(UART1PHYSMB, &senderMB, received, recvSize);
-            fwdSize = recvSize - NUMPHYSICALBYTES;
+            fwdSize = 0;
 
             /* Remove extra DLEs from message to forward */
-            for(i = 0; i < fwdSize; i++)
+            while(toForward[fwdSize] != ETX)
             {
                 /* Check if current character is a DLE */
-                if(toForward[i] == DLE)
+                if(toForward[fwdSize] == DLE)
                 {
                     /* Current character is a DLE so remove it */
-                    memmove(&toForward[i], &toForward[i + 1], fwdSize - i);
-                    fwdSize--;
+                    memmove(&toForward[fwdSize], &toForward[fwdSize + 1], recvSize - fwdSize);
                 }
+
+                fwdSize++;
             }
 
             /* Adjust checksum pointer */
+            fwdSize -= 1;
             checksum = toForward + fwdSize;
 
             /* Calculate expected checksum of message to forward */
