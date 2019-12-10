@@ -22,7 +22,7 @@
 #define INCREMENT_SEQUENCE(x)   ((x + 1) % MAX_SEQUENCE)
 
 /* Sequence number and expected number of data link layer:
- * {Ns, Nr, Type}
+ * {Nr, Ns, Type}
  */
 DLControl DLState = {0, 0, DATA};
 
@@ -43,11 +43,6 @@ inline void forwardMessages(unsigned char start)
     unsigned char i;
     int fwdSize = sizeof(DLMessage);
     union DLFromMB toForward;
-
-    //TODO: What if two processes call this function at once?
-    //      No harm can be done from this but it could be really
-    //      inefficient to not handle it. Though it is unlikely to
-    //      occur in the first place.
 
     /* Loop through all messages to re-send */
     for(i = start; i != DLState.sequenceNum; i = INCREMENT_SEQUENCE(i))
@@ -188,12 +183,7 @@ void DataLinkfromPhysHandler(void)
                     /* Sequence number matches so first increment received number of current state */
                     DLState.receivedNum = INCREMENT_SEQUENCE(DLState.receivedNum);
 
-                    /* Since the Nr field of this received message implies an ACK, need to
-                     * reset timer on ACKed messages.
-                     */
-                    //TODO: Do this once time server has been finished
-
-                    /* Build control field to send to physical layer */
+                    /* Build control field to send to application layer */
                     received.msgAddr->control = DLState;
                     received.msgAddr->control.type = ACK;
                     sendMessage(DATALINKPHYSMB, PHYSDATALINKMB, received.recvAddr, ctlSize);
@@ -220,29 +210,4 @@ void DataLinkfromPhysHandler(void)
      * mailbox bind was unsuccessful
      */
     return;
-}
-
-
-/*
- * @brief   Process that checks for timeouts on messages that
- *          have yet to be acknowledged.
- */
-void DataLinkTimeoutHandler(void)
-{
-    /* Loop indefinitely while looking for a timeout */
-    while(1)
-    {
-        //TODO: Once time server is added, check earliest
-        //      sent message that has yet to be ACKed.
-        /*
-        if(###)
-        {
-            forwardMessages(##, PHYSDATALINKMB);
-        }
-        */
-    }
-
-    /* This return statement should never be reached;
-     * but if it does, terminate the process
-     */
 }

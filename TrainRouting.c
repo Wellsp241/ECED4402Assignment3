@@ -5,7 +5,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    9-Dec-2019 (created)
- * @date
+ * @date    10-Dec-2019 (edited)
  */
 #include "TrainRouting.h"
 #include "DataLinkMessage.h"
@@ -14,13 +14,11 @@
 #define DEFAULT_SWITCH  (0xFF)
 
 /* Container of train state(s) */
-//TODO: Make non-global
 struct TrainState TState = {{DEFAULT_SPEED, 0, DEFAULT_DIRECTION}, DEFAULT_DESTINATION, DEFAULT_STOP};
 
 /* Switch state register.
  * Each bit corresponds to a different switch (i.e. LSB corresponds to switch 1).
  */
-//TODO: Make non-global
 unsigned char Switch_States = DEFAULT_SWITCH;
 
 

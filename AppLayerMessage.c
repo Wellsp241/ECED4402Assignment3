@@ -48,6 +48,8 @@ void AppfromDataLinkHandler(void)
     struct RoutingTableEntry * path;
     int msgSize = sizeof(AppMessage);
     /* Reserve space for received and reply messages */
+    int diagnosticSize = MESSAGE_SYS_LIMIT;
+    char diagnostic[diagnosticSize];
     char Msg[msgSize];
     union AppFromMB received;
     received.recvAddr = Msg;
@@ -76,7 +78,11 @@ void AppfromDataLinkHandler(void)
             {
                 /* Hall sensor has been triggered */
                 case HALL_TRIGGERED:
-                //TODO: Need to check state of each train to determine which train triggered this hall sensor
+                /* Print triggered sensor index to console */
+                sprintf(diagnostic, "Sensor %i triggered!", received.msgAddr->arg1);
+                sendMessage(UART0_IP_MB, DATALINKAPPMB, diagnostic, diagnosticSize);
+
+                /* Get most direct path to destination */
                 path = getPath(received.msgAddr->arg1, TState.destination);
 
                 /* Check whether train must be stopped */
@@ -97,11 +103,11 @@ void AppfromDataLinkHandler(void)
                         reply.msgAddr->arg1 = TRAIN;
                         replySpeed.Speed->direction = path->dir;
                         replySpeed.Speed->magnitude = TState.speed.magnitude;
-
                         sendMessage(APPDATALINKMB, DATALINKAPPMB, reply.recvAddr, msgSize);
 
                         /* Update train's state */
                         TState.speed.direction = path->dir;
+                        TState.stop = PATH_GO;
                     }
 
                     /* Check whether a switch-throw request must be sent */
@@ -181,13 +187,13 @@ void AppfromUART0Handler(void)
 {
     int Mailbox;
     int senderMB;
-    int recvSize;
+    int recvSize = MESSAGE_SYS_LIMIT;
     int fwdSize = sizeof(AppMessage);
-    unsigned char start;
-    unsigned char end;
+    int start;
+    int end;
     struct RoutingTableEntry * path;
     /* Reserve space for received and reply messages */
-    char received[MESSAGE_SYS_LIMIT];
+    char received[recvSize];
     char Msg[fwdSize];
     union AppFromMB reply;
     reply.recvAddr = Msg;
@@ -204,18 +210,11 @@ void AppfromUART0Handler(void)
         while(1)
         {
             /* Receive message from dedicated mailbox */
-            //TODO: This input only works for single-digit sensors
-            strcpy(received, "Input Start Point: ");
-            sendMessage(UART0_IP_MB, UART0APPMB, received, 19);
-            recvSize = MESSAGE_SYS_LIMIT;
+            strcpy(received, "Input Start and End Point: \0");
+            sendMessage(UART0_IP_MB, UART0APPMB, received, strlen(received));
             recvMessage(UART0APPMB, &senderMB, received, recvSize);
-            start = *received - '0';
+            sscanf(received, "%2d %2d", &start, &end);
 
-            strcpy(received, "Input End Point: ");
-            sendMessage(UART0_IP_MB, UART0APPMB, received, 17);
-            recvSize = MESSAGE_SYS_LIMIT;
-            recvMessage(UART0APPMB, &senderMB, received, recvSize);
-            end = *received - '0';
             TState.destination = end;
             path = getPath(start, end);
 

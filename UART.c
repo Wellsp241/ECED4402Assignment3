@@ -62,9 +62,12 @@ void uart0_InputServer(void)
     int toMB;
     char cont[MESSAGE_SYS_LIMIT];
     int size = MESSAGE_SYS_LIMIT;
+    PCB* runningPCB = getRunningPCB();
     while (1)
     {
         recvMessage(UART0_IP_MB, &toMB, cont, size);
+        runningPCB->xAxisCursorPosition = 0;
+        sendMessage(UART0_OP_MB, UART0_IP_MB, CLEAR_LINE, strlen(CLEAR_LINE) + 1);
         sendMessage(UART0_OP_MB, UART0_IP_MB, cont, size);
         cmd = NULL;
         size = NULL;
@@ -124,9 +127,8 @@ void uart1_OutputServer(void)
     int size = MESSAGE_SYS_LIMIT;
     while(1)
     {
-        size = MESSAGE_SYS_LIMIT;
         recvMessage(UART1_OP_MB, &toMB, cont, size);
-        printStringUART1(cont);
+        printStringUART1(cont, size);
     }
 }
 
@@ -320,11 +322,13 @@ void systemPrintString(char* string)
  * @param   [in] unsigned char size: size in bytes of string
  *
  */
-void printStringUART1(char* string)
+void printStringUART1(char * string, unsigned char size)
 {
-    while(*string)
+    int i;
+
+    for(i = 0; i < size; i++)
     {
-        force_UART1_Output(*(string++));
+        force_UART1_Output(string[i]);
     }
 }
 

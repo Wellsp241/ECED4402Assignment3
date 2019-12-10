@@ -7,7 +7,7 @@
  * @author  Liam JA MacDonald
  * @author  Patrick Wells
  * @date    23-Sep-2019 (created)
- * @date    7-Dec-2019 (modified)
+ * @date    10-Dec-2019 (modified)
  */
 #pragma once
 #include "Process.h"
@@ -109,6 +109,7 @@ typedef struct CUP
     extern void forceOutputUART0(char);
     extern int getDataRegister(char *);
     extern void printStringUART0(char*,PCB*);
+    extern void printStringUART1(char*, unsigned char);
     extern void systemPrintString(char*);
     extern void uart0_OutputServer(void);
     extern void uart0_InputServer(void);
@@ -123,7 +124,7 @@ typedef struct CUP
     void systemPrintString(char*);
     void forceOutput(char);
     void printStringUART0(char*,PCB*);
-    void printStringUART1(char* );
+    void printStringUART1(char*, unsigned char);
     void dataRecieved(void);
 
 #endif// GLOBAL_UART
